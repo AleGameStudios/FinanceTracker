@@ -1316,6 +1316,14 @@ select.input {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 100%;
+}
+
+.marks-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
 }
 
 .marks-panel-header {

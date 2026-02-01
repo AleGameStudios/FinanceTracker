@@ -408,7 +408,8 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
         <button className="btn-icon" onClick={onClose}>&times;</button>
       </div>
 
-      <div className="dollar-blue-rate">
+      <div className="marks-panel-content">
+        <div className="dollar-blue-rate">
         <div className="dollar-blue-header">
           <span className="rate-label">{t('dollarBlue')}</span>
           {isFetchingRate ? (
@@ -523,18 +524,19 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
         </div>
       </div>
 
-      <div className="marks-summary">
-        <div className="summary-row">
-          <span>{t('expectedBalance')}</span>
-          <span className={totalIncoming - totalOutgoing >= 0 ? 'positive' : 'negative'}>
-            ${(totalIncoming - totalOutgoing).toFixed(2)}
-          </span>
-        </div>
-        <div className="summary-row">
-          <span>{t('actualBalance')}</span>
-          <span className={completedIncoming - completedOutgoing >= 0 ? 'positive' : 'negative'}>
-            ${(completedIncoming - completedOutgoing).toFixed(2)}
-          </span>
+        <div className="marks-summary">
+          <div className="summary-row">
+            <span>{t('expectedBalance')}</span>
+            <span className={totalIncoming - totalOutgoing >= 0 ? 'positive' : 'negative'}>
+              ${(totalIncoming - totalOutgoing).toFixed(2)}
+            </span>
+          </div>
+          <div className="summary-row">
+            <span>{t('actualBalance')}</span>
+            <span className={completedIncoming - completedOutgoing >= 0 ? 'positive' : 'negative'}>
+              ${(completedIncoming - completedOutgoing).toFixed(2)}
+            </span>
+          </div>
         </div>
       </div>
 
