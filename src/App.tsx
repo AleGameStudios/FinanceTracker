@@ -17,6 +17,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { UserMenu } from './components/UserMenu';
 import { MobileNav } from './components/MobileNav';
 import { InstallPrompt } from './components/InstallPrompt';
+import { Calendar } from './components/Calendar';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { importData } from './utils/storage';
 import './App.css';
@@ -33,6 +34,7 @@ const AppContent: React.FC = () => {
   const [showCalculator, setShowCalculator] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeSheet = getActiveSheet();
@@ -136,6 +138,12 @@ const AppContent: React.FC = () => {
           >
             {t('notes')}
           </button>
+          <button
+            className={`nav-btn ${showCalendar ? 'active' : ''}`}
+            onClick={() => setShowCalendar(true)}
+          >
+            {t('calendar')}
+          </button>
           <button className="nav-btn" onClick={() => setShowTemplates(true)}>{t('templates')}</button>
           <button className="nav-btn" onClick={() => setShowHistory(true)}>{t('history')}</button>
           <button className="nav-btn" onClick={() => setShowSettings(true)}>{t('settings')}</button>
@@ -171,6 +179,7 @@ const AppContent: React.FC = () => {
         onShowHistory={() => setShowHistory(true)}
         onShowSettings={() => setShowSettings(true)}
         onShowHelp={() => setShowHelp(true)}
+        onShowCalendar={() => setShowCalendar(true)}
       />
 
       <div className="app-body">
@@ -234,6 +243,7 @@ const AppContent: React.FC = () => {
       {showHistory && <HistoryView onClose={() => setShowHistory(false)} />}
       {showSettings && <Settings onClose={() => setShowSettings(false)} />}
       {showHelp && <Help onClose={() => setShowHelp(false)} />}
+      {showCalendar && <Calendar isOpen={showCalendar} onClose={() => setShowCalendar(false)} />}
       {shouldShowPrompt && (
         <InstallPrompt
           onInstall={installApp}

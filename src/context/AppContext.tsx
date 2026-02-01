@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import type { AppData, Sheet, Template, Category, HistoryEntry, Mark, Currency, Balance } from '../types';
+import type { AppData, Sheet, Template, Category, HistoryEntry, Mark, Currency, Balance, DollarBlueRateData } from '../types';
 import { loadData, saveData, defaultData } from '../utils/storage';
 import { getRandomColor } from '../utils/colors';
 import { saveUserData, loadUserData, subscribeToUserData } from '../firebase';
@@ -19,7 +19,7 @@ type Action =
   | { type: 'DELETE_SHEET'; payload: string }
   | { type: 'IMPORT_DATA'; payload: AppData }
   | { type: 'SET_VIEW_MODE'; payload: 'grid' | 'list' }
-  | { type: 'ADD_MARK'; payload: { name: string; amount: number; markType: 'incoming' | 'outgoing'; currency: Currency; categoryId?: string; balanceId?: string } }
+  | { type: 'ADD_MARK'; payload: { name: string; amount: number; markType: 'incoming' | 'outgoing'; currency: Currency; categoryId?: string; balanceId?: string; dueDate?: string } }
   | { type: 'TOGGLE_MARK'; payload: { markId: string } }
   | { type: 'REMOVE_MARK'; payload: { markId: string } }
   | { type: 'UPDATE_CURRENT_BALANCE'; payload: { amount: number } }
@@ -29,8 +29,9 @@ type Action =
   | { type: 'UPDATE_NOTES'; payload: string }
   | { type: 'UPDATE_DOLLAR_BLUE_RATE'; payload: number }
   | { type: 'MOVE_MARK'; payload: { markId: string; targetSheetId: string } }
-  | { type: 'UPDATE_MARK'; payload: { markId: string; name: string; amount: number; currency: Currency; categoryId?: string; balanceId?: string } }
-  | { type: 'CONVERT_CATEGORY_CURRENCY'; payload: { categoryId: string; newCurrency: Currency; convertedAmount: number } };
+  | { type: 'UPDATE_MARK'; payload: { markId: string; name: string; amount: number; currency: Currency; categoryId?: string; balanceId?: string; dueDate?: string } }
+  | { type: 'CONVERT_CATEGORY_CURRENCY'; payload: { categoryId: string; newCurrency: Currency; convertedAmount: number } }
+  | { type: 'SET_DOLLAR_BLUE_RATE_DATA'; payload: DollarBlueRateData };
 
 interface AppContextType {
   state: AppData;
@@ -47,7 +48,7 @@ interface AppContextType {
   getActiveSheet: () => Sheet | null;
   importData: (data: AppData) => void;
   setViewMode: (mode: 'grid' | 'list') => void;
-  addMark: (name: string, amount: number, markType: 'incoming' | 'outgoing', currency: Currency, categoryId?: string, balanceId?: string) => void;
+  addMark: (name: string, amount: number, markType: 'incoming' | 'outgoing', currency: Currency, categoryId?: string, balanceId?: string, dueDate?: string) => void;
   toggleMark: (markId: string) => void;
   removeMark: (markId: string) => void;
   updateCurrentBalance: (amount: number) => void;
@@ -57,7 +58,8 @@ interface AppContextType {
   updateNotes: (notes: string) => void;
   updateDollarBlueRate: (rate: number) => void;
   moveMark: (markId: string, targetSheetId: string) => void;
-  updateMark: (markId: string, name: string, amount: number, currency: Currency, categoryId?: string, balanceId?: string) => void;
+  updateMark: (markId: string, name: string, amount: number, currency: Currency, categoryId?: string, balanceId?: string, dueDate?: string) => void;
+  setDollarBlueRateData: (data: DollarBlueRateData) => void;
   isLoading: boolean;
   isSyncing: boolean;
 }
@@ -274,6 +276,7 @@ const appReducer = (state: AppData, action: Action): AppData => {
         completed: false,
         categoryId: action.payload.categoryId,
         balanceId: action.payload.balanceId,
+        dueDate: action.payload.dueDate,
       };
 
       return {
@@ -476,7 +479,7 @@ const appReducer = (state: AppData, action: Action): AppData => {
                 ...s,
                 marks: s.marks?.map(m =>
                   m.id === action.payload.markId
-                    ? { ...m, name: action.payload.name, amount: action.payload.amount, currency: action.payload.currency, categoryId: action.payload.categoryId, balanceId: action.payload.balanceId }
+                    ? { ...m, name: action.payload.name, amount: action.payload.amount, currency: action.payload.currency, categoryId: action.payload.categoryId, balanceId: action.payload.balanceId, dueDate: action.payload.dueDate }
                     : m
                 ),
               }
@@ -505,6 +508,13 @@ const appReducer = (state: AppData, action: Action): AppData => {
         ),
       };
     }
+
+    case 'SET_DOLLAR_BLUE_RATE_DATA':
+      return {
+        ...state,
+        dollarBlueRate: action.payload.promedio,
+        dollarBlueRateData: action.payload,
+      };
 
     default:
       return state;
@@ -673,8 +683,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
     dispatch({ type: 'SET_VIEW_MODE', payload: mode });
   };
 
-  const addMark = (name: string, amount: number, markType: 'incoming' | 'outgoing', currency: Currency = 'USD', categoryId?: string, balanceId?: string) => {
-    dispatch({ type: 'ADD_MARK', payload: { name, amount, markType, currency, categoryId, balanceId } });
+  const addMark = (name: string, amount: number, markType: 'incoming' | 'outgoing', currency: Currency = 'USD', categoryId?: string, balanceId?: string, dueDate?: string) => {
+    dispatch({ type: 'ADD_MARK', payload: { name, amount, markType, currency, categoryId, balanceId, dueDate } });
   };
 
   const toggleMark = (markId: string) => {
@@ -713,8 +723,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
     dispatch({ type: 'MOVE_MARK', payload: { markId, targetSheetId } });
   };
 
-  const updateMark = (markId: string, name: string, amount: number, currency: Currency, categoryId?: string, balanceId?: string) => {
-    dispatch({ type: 'UPDATE_MARK', payload: { markId, name, amount, currency, categoryId, balanceId } });
+  const updateMark = (markId: string, name: string, amount: number, currency: Currency, categoryId?: string, balanceId?: string, dueDate?: string) => {
+    dispatch({ type: 'UPDATE_MARK', payload: { markId, name, amount, currency, categoryId, balanceId, dueDate } });
+  };
+
+  const setDollarBlueRateData = (data: DollarBlueRateData) => {
+    dispatch({ type: 'SET_DOLLAR_BLUE_RATE_DATA', payload: data });
   };
 
   return (
@@ -745,6 +759,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
         updateDollarBlueRate,
         moveMark,
         updateMark,
+        setDollarBlueRateData,
         isLoading,
         isSyncing,
       }}

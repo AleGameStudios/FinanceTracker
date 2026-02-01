@@ -14,6 +14,7 @@ interface MobileNavProps {
   onShowHistory: () => void;
   onShowSettings: () => void;
   onShowHelp: () => void;
+  onShowCalendar: () => void;
 }
 
 export const MobileNav: React.FC<MobileNavProps> = ({
@@ -29,6 +30,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   onShowHistory,
   onShowSettings,
   onShowHelp,
+  onShowCalendar,
 }) => {
   const { t } = useSettings();
 
@@ -95,6 +97,19 @@ export const MobileNav: React.FC<MobileNavProps> = ({
               <polyline points="10,9 9,9 8,9" />
             </svg>
             {t('notes')}
+          </button>
+
+          <button
+            className="mobile-nav-item"
+            onClick={() => handleItemClick(onShowCalendar)}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            {t('calendar')}
           </button>
 
           <div className="mobile-nav-divider" />

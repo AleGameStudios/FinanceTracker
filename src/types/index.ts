@@ -25,6 +25,7 @@ export interface Mark {
   completedAt?: number;
   categoryId?: string;
   balanceId?: string; // Link to a specific balance
+  dueDate?: string; // ISO date string (YYYY-MM-DD) for calendar display
 }
 
 export interface HistoryEntry {
@@ -60,6 +61,14 @@ export interface Template {
   createdAt: number;
 }
 
+export interface DollarBlueRateData {
+  compra: number;
+  venta: number;
+  promedio: number;
+  lastUpdated: number; // timestamp
+  sources: { name: string; compra: number; venta: number }[];
+}
+
 export interface AppData {
   sheets: Sheet[];
   templates: Template[];
@@ -68,4 +77,5 @@ export interface AppData {
   viewMode: 'grid' | 'list';
   notes: string;
   dollarBlueRate: number;
+  dollarBlueRateData?: DollarBlueRateData; // Auto-fetched rate data
 }

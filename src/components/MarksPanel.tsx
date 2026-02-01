@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { useSettings } from '../context/SettingsContext';
+import { fetchDollarBlueRate, isRateStale } from '../utils/dollarBlue';
 import type { Mark, Currency } from '../types';
 
 // Format amount - ARS uses Spanish formatting (periods for thousands, comma for decimals)
@@ -21,7 +22,7 @@ interface MarksPanelProps {
 }
 
 export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
-  const { state, getActiveSheet, addMark, toggleMark, removeMark, updateDollarBlueRate, moveMark, updateMark } = useApp();
+  const { state, getActiveSheet, addMark, toggleMark, removeMark, updateDollarBlueRate, moveMark, updateMark, setDollarBlueRateData } = useApp();
   const { t } = useSettings();
   const [isAdding, setIsAdding] = useState<'incoming' | 'outgoing' | null>(null);
   const [newMarkName, setNewMarkName] = useState('');
@@ -39,8 +40,39 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
   const [newMarkBalanceId, setNewMarkBalanceId] = useState<string>('');
   const [editMarkCategoryId, setEditMarkCategoryId] = useState<string>('');
   const [editMarkBalanceId, setEditMarkBalanceId] = useState<string>('');
+  const [newMarkDueDate, setNewMarkDueDate] = useState<string>('');
+  const [editMarkDueDate, setEditMarkDueDate] = useState<string>('');
+  const [isFetchingRate, setIsFetchingRate] = useState(false);
+  const [rateFetchError, setRateFetchError] = useState(false);
 
   const dollarBlueRate = state.dollarBlueRate || 1200;
+  const dollarBlueRateData = state.dollarBlueRateData;
+
+  // Auto-fetch dollar blue rate
+  const handleFetchRate = useCallback(async () => {
+    setIsFetchingRate(true);
+    setRateFetchError(false);
+    try {
+      const rateData = await fetchDollarBlueRate();
+      if (rateData) {
+        setDollarBlueRateData(rateData);
+      } else {
+        setRateFetchError(true);
+      }
+    } catch (error) {
+      console.error('Failed to fetch dollar blue rate:', error);
+      setRateFetchError(true);
+    } finally {
+      setIsFetchingRate(false);
+    }
+  }, [setDollarBlueRateData]);
+
+  // Auto-fetch on mount if rate is stale
+  useEffect(() => {
+    if (isOpen && isRateStale(dollarBlueRateData)) {
+      handleFetchRate();
+    }
+  }, [isOpen, dollarBlueRateData, handleFetchRate]);
 
   // Convert ARS to USD using the dollar blue rate
   const toUSD = (amount: number, currency: Currency): number => {
@@ -61,12 +93,13 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
 
   const handleAddMark = (type: 'incoming' | 'outgoing') => {
     if (newMarkName.trim()) {
-      addMark(newMarkName.trim(), parseFloat(newMarkAmount) || 0, type, newMarkCurrency, newMarkCategoryId || undefined, newMarkBalanceId || undefined);
+      addMark(newMarkName.trim(), parseFloat(newMarkAmount) || 0, type, newMarkCurrency, newMarkCategoryId || undefined, newMarkBalanceId || undefined, newMarkDueDate || undefined);
       setNewMarkName('');
       setNewMarkAmount('');
       setNewMarkCurrency('USD');
       setNewMarkCategoryId('');
       setNewMarkBalanceId('');
+      setNewMarkDueDate('');
       setIsAdding(null);
     }
   };
@@ -104,17 +137,19 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
     setEditMarkCurrency(mark.currency || 'USD');
     setEditMarkCategoryId(mark.categoryId || '');
     setEditMarkBalanceId(mark.balanceId || '');
+    setEditMarkDueDate(mark.dueDate || '');
   };
 
   const saveMarkEdit = () => {
     if (editingMarkId && editMarkName.trim()) {
-      updateMark(editingMarkId, editMarkName.trim(), parseFloat(editMarkAmount) || 0, editMarkCurrency, editMarkCategoryId || undefined, editMarkBalanceId || undefined);
+      updateMark(editingMarkId, editMarkName.trim(), parseFloat(editMarkAmount) || 0, editMarkCurrency, editMarkCategoryId || undefined, editMarkBalanceId || undefined, editMarkDueDate || undefined);
       setEditingMarkId(null);
       setEditMarkName('');
       setEditMarkAmount('');
       setEditMarkCurrency('USD');
       setEditMarkCategoryId('');
       setEditMarkBalanceId('');
+      setEditMarkDueDate('');
     }
   };
 
@@ -125,6 +160,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
     setEditMarkCurrency('USD');
     setEditMarkCategoryId('');
     setEditMarkBalanceId('');
+    setEditMarkDueDate('');
   };
 
   const categories = activeSheet?.categories || [];
@@ -186,6 +222,25 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
                 <option key={bal.id} value={bal.id}>{bal.name} ({bal.currency})</option>
               ))}
             </select>
+            <div className="mark-due-date-row">
+              <label className="due-date-label">{t('dueDate')}</label>
+              <input
+                type="date"
+                className="input"
+                value={editMarkDueDate}
+                onChange={(e) => setEditMarkDueDate(e.target.value)}
+              />
+              {editMarkDueDate && (
+                <button
+                  type="button"
+                  className="btn-icon btn-clear-date"
+                  onClick={() => setEditMarkDueDate('')}
+                  title={t('clearDueDate')}
+                >
+                  &times;
+                </button>
+              )}
+            </div>
             <div className="mark-edit-actions">
               <button className="btn btn-primary btn-sm" onClick={saveMarkEdit}>{t('save')}</button>
               <button className="btn btn-secondary btn-sm" onClick={cancelMarkEdit}>{t('cancel')}</button>
@@ -219,6 +274,11 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
             {linkedBalance && (
               <span className="mark-balance-link">
                 {linkedBalance.name}
+              </span>
+            )}
+            {mark.dueDate && (
+              <span className="mark-due-date-badge">
+                📅 {new Date(mark.dueDate + 'T00:00:00').toLocaleDateString()}
               </span>
             )}
           </div>
@@ -301,6 +361,25 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
           <option key={bal.id} value={bal.id}>{bal.name} ({bal.currency})</option>
         ))}
       </select>
+      <div className="mark-due-date-row">
+        <label className="due-date-label">{t('dueDate')}</label>
+        <input
+          type="date"
+          className="input"
+          value={newMarkDueDate}
+          onChange={(e) => setNewMarkDueDate(e.target.value)}
+        />
+        {newMarkDueDate && (
+          <button
+            type="button"
+            className="btn-icon btn-clear-date"
+            onClick={() => setNewMarkDueDate('')}
+            title={t('clearDueDate')}
+          >
+            &times;
+          </button>
+        )}
+      </div>
       <div className="add-mark-actions">
         <button className="btn btn-primary btn-sm" onClick={() => handleAddMark(type)}>
           {t('add')}
@@ -312,6 +391,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
           setNewMarkCurrency('USD');
           setNewMarkCategoryId('');
           setNewMarkBalanceId('');
+          setNewMarkDueDate('');
         }}>
           {t('cancel')}
         </button>
@@ -329,29 +409,55 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
       </div>
 
       <div className="dollar-blue-rate">
-        <span className="rate-label">{t('dollarBlue')}</span>
-        {isEditingRate ? (
-          <input
-            type="number"
-            className="input rate-input"
-            value={rateInput}
-            onChange={(e) => setRateInput(e.target.value)}
-            onBlur={handleRateSave}
-            onKeyDown={handleRateKeyDown}
-            autoFocus
-            step="0.01"
-          />
-        ) : (
-          <button
-            className="rate-value"
-            onClick={() => {
-              setRateInput(dollarBlueRate.toString());
-              setIsEditingRate(true);
+        <div className="dollar-blue-header">
+          <span className="rate-label">{t('dollarBlue')}</span>
+          {isFetchingRate ? (
+            <span className="rate-fetching">{t('dollarBlueFetching')}</span>
+          ) : isEditingRate ? (
+            <input
+              type="number"
+              className="input rate-input"
+              value={rateInput}
+              onChange={(e) => setRateInput(e.target.value)}
+              onBlur={handleRateSave}
+              onKeyDown={handleRateKeyDown}
+              autoFocus
+              step="0.01"
+            />
+          ) : (
+            <button
+              className="rate-value"
+              onClick={() => {
+                setRateInput(dollarBlueRate.toString());
+                setIsEditingRate(true);
             }}
             title={t('clickToEdit')}
           >
-            ARS ${dollarBlueRate}
+            ARS ${dollarBlueRate.toLocaleString('es-AR')}
           </button>
+          )}
+          <button
+            className="btn btn-secondary btn-sm btn-refresh-rate"
+            onClick={handleFetchRate}
+            disabled={isFetchingRate}
+            title={t('refreshRate')}
+          >
+            {isFetchingRate ? '...' : '↻'}
+          </button>
+        </div>
+        {rateFetchError && (
+          <span className="rate-error">{t('dollarBlueFetchError')}</span>
+        )}
+        {dollarBlueRateData && (
+          <div className="dollar-blue-details">
+            <span>{t('dollarBlueCompra')}: ${dollarBlueRateData.compra.toLocaleString('es-AR')}</span>
+            <span>{t('dollarBlueVenta')}: ${dollarBlueRateData.venta.toLocaleString('es-AR')}</span>
+          </div>
+        )}
+        {dollarBlueRateData && dollarBlueRateData.sources.length > 0 && (
+          <div className="dollar-blue-sources">
+            {t('dollarBlueSources')}: {dollarBlueRateData.sources.map(s => s.name).join(', ')}
+          </div>
         )}
       </div>
 

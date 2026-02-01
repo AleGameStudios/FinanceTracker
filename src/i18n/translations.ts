@@ -271,6 +271,51 @@ export const translations = {
     currency: 'Currency',
     convertToARS: 'Convert to ARS',
     convertToUSD: 'Convert to USD',
+
+    // Calendar
+    calendar: 'Calendar',
+    today: 'Today',
+    dueDate: 'Due Date',
+    clearDueDate: 'Clear due date',
+    noTransactionsOnDate: 'No transactions scheduled for this date',
+    noScheduledTransactions: 'No scheduled transactions. Add due dates to your transactions to see them here.',
+    overdueTransactions: 'Overdue',
+    upcomingTransactions: 'Upcoming (7 days)',
+
+    // Month names
+    january: 'January',
+    february: 'February',
+    march: 'March',
+    april: 'April',
+    may: 'May',
+    june: 'June',
+    july: 'July',
+    august: 'August',
+    september: 'September',
+    october: 'October',
+    november: 'November',
+    december: 'December',
+
+    // Day names (short)
+    sun: 'Sun',
+    mon: 'Mon',
+    tue: 'Tue',
+    wed: 'Wed',
+    thu: 'Thu',
+    fri: 'Fri',
+    sat: 'Sat',
+
+    // Dollar Blue Auto-fetch
+    dollarBlueAuto: 'Auto-fetch Rate',
+    dollarBlueManual: 'Manual',
+    dollarBlueFetching: 'Fetching...',
+    dollarBlueFetchError: 'Could not fetch rate',
+    dollarBlueLastUpdated: 'Last updated',
+    dollarBlueSources: 'Sources',
+    refreshRate: 'Refresh',
+    dollarBlueCompra: 'Buy',
+    dollarBlueVenta: 'Sell',
+    dollarBluePromedio: 'Avg',
   },
   es: {
     // App
@@ -542,6 +587,51 @@ export const translations = {
     currency: 'Moneda',
     convertToARS: 'Convertir a ARS',
     convertToUSD: 'Convertir a USD',
+
+    // Calendar
+    calendar: 'Calendario',
+    today: 'Hoy',
+    dueDate: 'Fecha de Vencimiento',
+    clearDueDate: 'Quitar fecha',
+    noTransactionsOnDate: 'Sin transacciones programadas para esta fecha',
+    noScheduledTransactions: 'Sin transacciones programadas. Agrega fechas de vencimiento a tus transacciones para verlas aqui.',
+    overdueTransactions: 'Vencidas',
+    upcomingTransactions: 'Proximos 7 dias',
+
+    // Month names
+    january: 'Enero',
+    february: 'Febrero',
+    march: 'Marzo',
+    april: 'Abril',
+    may: 'Mayo',
+    june: 'Junio',
+    july: 'Julio',
+    august: 'Agosto',
+    september: 'Septiembre',
+    october: 'Octubre',
+    november: 'Noviembre',
+    december: 'Diciembre',
+
+    // Day names (short)
+    sun: 'Dom',
+    mon: 'Lun',
+    tue: 'Mar',
+    wed: 'Mie',
+    thu: 'Jue',
+    fri: 'Vie',
+    sat: 'Sab',
+
+    // Dollar Blue Auto-fetch
+    dollarBlueAuto: 'Obtener Automaticamente',
+    dollarBlueManual: 'Manual',
+    dollarBlueFetching: 'Obteniendo...',
+    dollarBlueFetchError: 'No se pudo obtener la cotizacion',
+    dollarBlueLastUpdated: 'Ultima actualizacion',
+    dollarBlueSources: 'Fuentes',
+    refreshRate: 'Actualizar',
+    dollarBlueCompra: 'Compra',
+    dollarBlueVenta: 'Venta',
+    dollarBluePromedio: 'Prom',
   },
 } as const;
 
