@@ -14,14 +14,20 @@ export const usePWAInstall = () => {
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [shouldShowPrompt, setShouldShowPrompt] = useState(false);
+  const [isIOSSafari, setIsIOSSafari] = useState(false);
 
-  // Check if app is already installed
+  // Check if app is already installed and detect iOS Safari
   useEffect(() => {
     // Check if running as standalone (installed)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
       || (window.navigator as unknown as { standalone?: boolean }).standalone === true;
 
     setIsInstalled(isStandalone);
+
+    // Check if iOS Safari (needs manual add to home screen)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+    setIsIOSSafari(isIOS && isSafari && !isStandalone);
   }, []);
 
   // Listen for beforeinstallprompt
@@ -96,6 +102,7 @@ export const usePWAInstall = () => {
   return {
     isInstallable,
     isInstalled,
+    isIOSSafari,
     shouldShowPrompt,
     installApp,
     dismissPrompt,

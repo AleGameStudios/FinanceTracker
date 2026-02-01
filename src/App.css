@@ -2391,3 +2391,22 @@ select.input {
 .install-dont-show:hover {
   color: var(--text-primary);
 }
+
+/* iOS Install Instructions */
+.ios-install-instructions {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.ios-install-instructions p {
+  margin-bottom: 0.5rem;
+}
+
+.ios-install-instructions ol {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.ios-install-instructions li {
+  margin-bottom: 0.25rem;
+}

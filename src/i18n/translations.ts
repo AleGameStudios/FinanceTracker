@@ -254,6 +254,10 @@ export const translations = {
     dontShowAgain: "Don't show this again",
     installApp: 'Install App',
     appAlreadyInstalled: 'App is already installed',
+    installNotAvailable: 'Install is available on supported mobile browsers. Visit the site on your phone to install.',
+    iosInstallInstructions: 'To install on iOS:',
+    iosStep1: 'Tap the Share button in Safari',
+    iosStep2: 'Select "Add to Home Screen"',
   },
   es: {
     // App
@@ -508,6 +512,10 @@ export const translations = {
     dontShowAgain: 'No mostrar de nuevo',
     installApp: 'Instalar App',
     appAlreadyInstalled: 'La app ya esta instalada',
+    installNotAvailable: 'La instalacion esta disponible en navegadores moviles compatibles. Visita el sitio desde tu celular para instalar.',
+    iosInstallInstructions: 'Para instalar en iOS:',
+    iosStep1: 'Toca el boton Compartir en Safari',
+    iosStep2: 'Selecciona "Agregar a Inicio"',
   },
 } as const;
 
