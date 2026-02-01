@@ -1,11 +1,12 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
+import type { Language } from '../i18n';
 import './LoginScreen.css';
 
 export const LoginScreen: React.FC = () => {
   const { login, loading, error } = useAuth();
-  const { t } = useSettings();
+  const { t, language, setLanguage } = useSettings();
 
   const handleLogin = async () => {
     try {
@@ -17,6 +18,22 @@ export const LoginScreen: React.FC = () => {
 
   return (
     <div className="login-screen">
+      <div className="login-language-toggle">
+        <div className="language-toggle-slider">
+          <button
+            className={language === 'en' ? 'active' : ''}
+            onClick={() => setLanguage('en' as Language)}
+          >
+            EN
+          </button>
+          <button
+            className={language === 'es' ? 'active' : ''}
+            onClick={() => setLanguage('es' as Language)}
+          >
+            ES
+          </button>
+        </div>
+      </div>
       <div className="login-container">
         <div className="login-header">
           <h1>{t('appName')}</h1>

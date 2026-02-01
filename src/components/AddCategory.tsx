@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useSettings } from '../context/SettingsContext';
 import { categoryColors } from '../utils/colors';
 
 export const AddCategory: React.FC = () => {
   const { addCategory } = useApp();
+  const { t } = useSettings();
   const [isAdding, setIsAdding] = useState(false);
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('0');
@@ -22,18 +24,18 @@ export const AddCategory: React.FC = () => {
   if (!isAdding) {
     return (
       <button className="btn btn-primary add-category-btn" onClick={() => setIsAdding(true)}>
-        + Add Category
+        {t('addCategory')}
       </button>
     );
   }
 
   return (
     <form className="add-category-form" onSubmit={handleSubmit}>
-      <h3>Add New Category</h3>
+      <h3>{t('addNewCategory')}</h3>
       <input
         type="text"
         className="input"
-        placeholder="Category name"
+        placeholder={t('categoryNamePlaceholder')}
         value={name}
         onChange={(e) => setName(e.target.value)}
         autoFocus
@@ -42,13 +44,13 @@ export const AddCategory: React.FC = () => {
       <input
         type="number"
         className="input"
-        placeholder="Initial amount"
+        placeholder={t('initialAmount')}
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         step="0.01"
       />
       <div className="color-picker">
-        <label>Color:</label>
+        <label>{t('color')}:</label>
         <div className="color-options">
           {categoryColors.map((c) => (
             <button
@@ -62,12 +64,12 @@ export const AddCategory: React.FC = () => {
         </div>
       </div>
       <div className="form-actions">
-        <button type="submit" className="btn btn-primary">Add</button>
+        <button type="submit" className="btn btn-primary">{t('add')}</button>
         <button type="button" className="btn btn-secondary" onClick={() => {
           setIsAdding(false);
           setName('');
           setAmount('0');
-        }}>Cancel</button>
+        }}>{t('cancel')}</button>
       </div>
     </form>
   );

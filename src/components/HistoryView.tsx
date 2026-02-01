@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useSettings } from '../context/SettingsContext';
 import type { HistoryEntry } from '../types';
 
 interface HistoryViewProps {
@@ -8,6 +9,7 @@ interface HistoryViewProps {
 
 export const HistoryView: React.FC<HistoryViewProps> = ({ onClose }) => {
   const { state } = useApp();
+  const { t } = useSettings();
   const [filter, setFilter] = useState<'all' | 'current'>('current');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
@@ -38,18 +40,18 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onClose }) => {
     switch (entry.type) {
       case 'sheet_created':
         const sheet = state.sheets.find(s => s.id === entry.sheetId);
-        return `New sheet created: ${sheet?.name || 'Unknown'}`;
+        return `${t('newSheetCreated')}: ${sheet?.name || t('unknown')}`;
       case 'initial':
-        return `${entry.categoryName} initialized with $${entry.newAmount.toFixed(2)}`;
+        return `${entry.categoryName} ${t('initializedWith')} $${entry.newAmount.toFixed(2)}`;
       case 'adjustment':
         const diff = entry.changeAmount;
         return `${entry.categoryName}: $${entry.previousAmount.toFixed(2)} → $${entry.newAmount.toFixed(2)} (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})`;
       case 'category_added':
-        return `Category added: ${entry.categoryName} ($${entry.newAmount.toFixed(2)})`;
+        return `${t('categoryAdded')}: ${entry.categoryName} ($${entry.newAmount.toFixed(2)})`;
       case 'category_removed':
-        return `Category removed: ${entry.categoryName} ($${entry.previousAmount.toFixed(2)})`;
+        return `${t('categoryRemoved')}: ${entry.categoryName} ($${entry.previousAmount.toFixed(2)})`;
       default:
-        return 'Unknown action';
+        return t('unknownAction');
     }
   };
 
@@ -67,43 +69,43 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onClose }) => {
     <div className="modal-overlay">
       <div className="modal modal-large">
         <div className="modal-header">
-          <h2>History</h2>
+          <h2>{t('history')}</h2>
           <button className="btn-icon" onClick={onClose}>&times;</button>
         </div>
 
         <div className="history-filters">
           <div className="filter-group">
-            <label>Sheet:</label>
+            <label>{t('sheet')}:</label>
             <select
               className="input input-small"
               value={filter}
               onChange={(e) => setFilter(e.target.value as 'all' | 'current')}
             >
-              <option value="current">Current Sheet</option>
-              <option value="all">All Sheets</option>
+              <option value="current">{t('currentSheet')}</option>
+              <option value="all">{t('allSheets')}</option>
             </select>
           </div>
 
           <div className="filter-group">
-            <label>Type:</label>
+            <label>{t('type')}:</label>
             <select
               className="input input-small"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
             >
-              <option value="all">All Types</option>
-              <option value="adjustment">Adjustments</option>
-              <option value="initial">Initial Values</option>
-              <option value="category_added">Categories Added</option>
-              <option value="category_removed">Categories Removed</option>
-              <option value="sheet_created">Sheets Created</option>
+              <option value="all">{t('allTypes')}</option>
+              <option value="adjustment">{t('adjustments')}</option>
+              <option value="initial">{t('initialValues')}</option>
+              <option value="category_added">{t('categoriesAdded')}</option>
+              <option value="category_removed">{t('categoriesRemoved')}</option>
+              <option value="sheet_created">{t('sheetsCreated')}</option>
             </select>
           </div>
         </div>
 
         <div className="history-list">
           {filteredHistory.length === 0 ? (
-            <p className="empty-message">No history entries found.</p>
+            <p className="empty-message">{t('noHistoryFound')}</p>
           ) : (
             filteredHistory.map((entry) => (
               <div key={entry.id} className={`history-entry history-${entry.type}`}>

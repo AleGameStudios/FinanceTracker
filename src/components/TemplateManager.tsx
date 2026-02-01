@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useSettings } from '../context/SettingsContext';
 import { categoryColors, getRandomColor } from '../utils/colors';
 import type { Category, Mark, Currency } from '../types';
 
@@ -22,6 +23,7 @@ interface TemplateManagerProps {
 
 export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => {
   const { state, createTemplate, deleteTemplate, createTemplateFromSheet } = useApp();
+  const { t } = useSettings();
   const [view, setView] = useState<'list' | 'create' | 'fromSheet'>('list');
   const [templateName, setTemplateName] = useState('');
   const [categories, setCategories] = useState<Omit<Category, 'id'>[]>([]);
@@ -94,7 +96,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
     <div className="modal-overlay">
       <div className="modal modal-large">
         <div className="modal-header">
-          <h2>Templates</h2>
+          <h2>{t('templates')}</h2>
           <button className="btn-icon" onClick={onClose}>&times;</button>
         </div>
 
@@ -102,24 +104,24 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
           <>
             <div className="template-actions">
               <button className="btn btn-primary" onClick={() => setView('create')}>
-                Create New Template
+                {t('createNewTemplate')}
               </button>
               <button className="btn btn-secondary" onClick={() => setView('fromSheet')}>
-                Save Sheet as Template
+                {t('saveSheetAsTemplate')}
               </button>
             </div>
 
             <div className="template-list">
               {state.templates.length === 0 ? (
-                <p className="empty-message">No templates yet. Create one to get started!</p>
+                <p className="empty-message">{t('noTemplatesMessage')}</p>
               ) : (
                 state.templates.map((template) => (
                   <div key={template.id} className="template-item">
                     <div className="template-info">
                       <h3>{template.name}</h3>
                       <p>
-                        {template.categories.length} categories
-                        {(template.marks?.length || 0) > 0 && `, ${template.marks?.length} marks`}
+                        {template.categories.length} {t('categories')}
+                        {(template.marks?.length || 0) > 0 && `, ${template.marks?.length} ${t('transactionsCount')}`}
                       </p>
                       <div className="template-categories">
                         {template.categories.map((cat, i) => (
@@ -142,7 +144,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                       className="btn btn-danger btn-sm"
                       onClick={() => deleteTemplate(template.id)}
                     >
-                      Delete
+                      {t('delete')}
                     </button>
                   </div>
                 ))
@@ -156,13 +158,13 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
             <input
               type="text"
               className="input"
-              placeholder="Template name"
+              placeholder={t('templateName')}
               value={templateName}
               onChange={(e) => setTemplateName(e.target.value)}
             />
 
             <div className="template-section">
-              <h4>Categories</h4>
+              <h4>{t('categories')}</h4>
               <div className="categories-list">
                 {categories.map((cat, index) => (
                   <div key={index} className="category-item" style={{ borderLeftColor: cat.color }}>
@@ -176,14 +178,14 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                 <input
                   type="text"
                   className="input"
-                  placeholder="Category name"
+                  placeholder={t('categoryNamePlaceholder')}
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                 />
                 <input
                   type="number"
                   className="input input-small"
-                  placeholder="Amount"
+                  placeholder={t('amount')}
                   value={newCategoryAmount}
                   onChange={(e) => setNewCategoryAmount(e.target.value)}
                   step="0.01"
@@ -199,12 +201,12 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                     />
                   ))}
                 </div>
-                <button className="btn btn-secondary" onClick={handleAddCategory}>Add</button>
+                <button className="btn btn-secondary" onClick={handleAddCategory}>{t('add')}</button>
               </div>
             </div>
 
             <div className="template-section">
-              <h4>Marks</h4>
+              <h4>{t('transactions')}</h4>
               <div className="marks-template-list">
                 {marks.map((mark, index) => (
                   <div key={index} className={`mark-template-item ${mark.type}`}>
@@ -221,20 +223,20 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                   value={newMarkType}
                   onChange={(e) => setNewMarkType(e.target.value as 'incoming' | 'outgoing')}
                 >
-                  <option value="incoming">Incoming</option>
-                  <option value="outgoing">Outgoing</option>
+                  <option value="incoming">{t('incoming')}</option>
+                  <option value="outgoing">{t('outgoing')}</option>
                 </select>
                 <input
                   type="text"
                   className="input"
-                  placeholder="Mark name"
+                  placeholder={t('transactionNamePlaceholder')}
                   value={newMarkName}
                   onChange={(e) => setNewMarkName(e.target.value)}
                 />
                 <input
                   type="number"
                   className="input input-small"
-                  placeholder="Amount"
+                  placeholder={t('amount')}
                   value={newMarkAmount}
                   onChange={(e) => setNewMarkAmount(e.target.value)}
                   step="0.01"
@@ -247,7 +249,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                   <option value="USD">USD</option>
                   <option value="ARS">ARS</option>
                 </select>
-                <button className="btn btn-secondary" onClick={handleAddMark}>Add</button>
+                <button className="btn btn-secondary" onClick={handleAddMark}>{t('add')}</button>
               </div>
             </div>
 
@@ -257,14 +259,14 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                 onClick={handleCreateTemplate}
                 disabled={!templateName.trim() || (categories.length === 0 && marks.length === 0)}
               >
-                Create Template
+                {t('createTemplate')}
               </button>
               <button className="btn btn-secondary" onClick={() => {
                 setView('list');
                 setTemplateName('');
                 setCategories([]);
                 setMarks([]);
-              }}>Back</button>
+              }}>{t('back')}</button>
             </div>
           </div>
         )}
@@ -276,7 +278,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
               value={selectedSheetId}
               onChange={(e) => setSelectedSheetId(e.target.value)}
             >
-              <option value="">Select a sheet...</option>
+              <option value="">{t('selectSheetOption')}</option>
               {state.sheets.map((sheet) => (
                 <option key={sheet.id} value={sheet.id}>{sheet.name}</option>
               ))}
@@ -287,12 +289,12 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                 <input
                   type="text"
                   className="input"
-                  placeholder="Template name"
+                  placeholder={t('templateName')}
                   value={saveAsTemplateName}
                   onChange={(e) => setSaveAsTemplateName(e.target.value)}
                 />
                 <p className="text-muted">
-                  This will save the sheet's categories and marks as a reusable template.
+                  {t('templateSaveDescription')}
                 </p>
               </>
             )}
@@ -303,13 +305,13 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                 onClick={handleSaveSheetAsTemplate}
                 disabled={!selectedSheetId || !saveAsTemplateName.trim()}
               >
-                Save as Template
+                {t('saveAsTemplate')}
               </button>
               <button className="btn btn-secondary" onClick={() => {
                 setView('list');
                 setSelectedSheetId('');
                 setSaveAsTemplateName('');
-              }}>Back</button>
+              }}>{t('back')}</button>
             </div>
           </div>
         )}

@@ -12,6 +12,7 @@ import { Settings } from './components/Settings';
 import { MarksPanel } from './components/MarksPanel';
 import { Calculator } from './components/Calculator';
 import { Notes } from './components/Notes';
+import { Help } from './components/Help';
 import { LoginScreen } from './components/LoginScreen';
 import { UserMenu } from './components/UserMenu';
 import { MobileNav } from './components/MobileNav';
@@ -28,6 +29,7 @@ const AppContent: React.FC = () => {
   const [showMarks, setShowMarks] = useState(true);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeSheet = getActiveSheet();
@@ -117,7 +119,7 @@ const AppContent: React.FC = () => {
             className={`nav-btn ${showMarks ? 'active' : ''}`}
             onClick={() => setShowMarks(!showMarks)}
           >
-            {t('marks')}
+            {t('transactions')}
           </button>
           <button
             className={`nav-btn ${showCalculator ? 'active' : ''}`}
@@ -134,6 +136,7 @@ const AppContent: React.FC = () => {
           <button className="nav-btn" onClick={() => setShowTemplates(true)}>{t('templates')}</button>
           <button className="nav-btn" onClick={() => setShowHistory(true)}>{t('history')}</button>
           <button className="nav-btn" onClick={() => setShowSettings(true)}>{t('settings')}</button>
+          <button className="nav-btn" onClick={() => setShowHelp(true)}>{t('help')}</button>
           <UserMenu />
         </nav>
         <div className="header-right">
@@ -164,6 +167,7 @@ const AppContent: React.FC = () => {
         onShowTemplates={() => setShowTemplates(true)}
         onShowHistory={() => setShowHistory(true)}
         onShowSettings={() => setShowSettings(true)}
+        onShowHelp={() => setShowHelp(true)}
       />
 
       <div className="app-body">
@@ -226,6 +230,7 @@ const AppContent: React.FC = () => {
       {showTemplates && <TemplateManager onClose={() => setShowTemplates(false)} />}
       {showHistory && <HistoryView onClose={() => setShowHistory(false)} />}
       {showSettings && <Settings onClose={() => setShowSettings(false)} />}
+      {showHelp && <Help onClose={() => setShowHelp(false)} />}
     </div>
   );
 };

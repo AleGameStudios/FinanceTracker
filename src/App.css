@@ -294,32 +294,53 @@ select.input {
   display: flex;
   align-items: center;
   position: relative;
+  background-color: var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.sheet-tab.active {
+  background-color: var(--primary-color);
 }
 
 .sheet-tab-btn {
   background: none;
   border: none;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   color: var(--text-secondary);
   cursor: pointer;
-  border-radius: var(--radius-md);
   transition: all 0.2s;
 }
 
 .sheet-tab.active .sheet-tab-btn {
-  background-color: var(--primary-color);
   color: white;
 }
 
-.sheet-tab:not(.active) .sheet-tab-btn:hover {
-  background-color: var(--border-color);
+.sheet-tab:not(.active):hover {
+  background-color: #d1d5db;
 }
 
 .btn-delete-tab {
   font-size: 1rem;
-  padding: 0.125rem 0.25rem;
-  margin-left: -0.5rem;
+  padding: 0.25rem 0.5rem;
+  margin-left: 0;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  transition: opacity 0.2s, color 0.2s;
+}
+
+.sheet-tab.active .btn-delete-tab {
+  color: white;
+}
+
+.btn-delete-tab:hover {
+  opacity: 1;
+  color: var(--danger-color);
+}
+
+.sheet-tab.active .btn-delete-tab:hover {
+  color: #fecaca;
 }
 
 .btn-new-sheet {
@@ -2210,4 +2231,88 @@ select.input {
 
 [data-theme="dark"] .user-menu-item:hover {
   background: var(--hover-background);
+}
+
+/* Help Modal */
+.modal-help {
+  max-height: 85vh;
+}
+
+.help-content {
+  overflow-y: auto;
+  max-height: 60vh;
+  padding-right: 0.5rem;
+}
+
+.help-intro {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.help-section {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: var(--background-color);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.75rem;
+}
+
+.help-section-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-color);
+  border-radius: var(--radius-md);
+  color: white;
+}
+
+.help-section-content h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.375rem;
+  color: var(--text-primary);
+}
+
+.help-section-content p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.help-tips {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: var(--background-color);
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--accent-color);
+}
+
+.help-tips h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary);
+}
+
+.help-tips ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.help-tips li {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 0.375rem;
+}
+
+.help-tips li:last-child {
+  margin-bottom: 0;
 }

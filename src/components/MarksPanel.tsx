@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useSettings } from '../context/SettingsContext';
 import type { Mark, Currency } from '../types';
 
 // Format amount - ARS uses k for thousands, USD uses full decimals
@@ -22,6 +23,7 @@ interface MarksPanelProps {
 
 export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
   const { state, getActiveSheet, addMark, toggleMark, removeMark, updateDollarBlueRate, moveMark, updateMark } = useApp();
+  const { t } = useSettings();
   const [isAdding, setIsAdding] = useState<'incoming' | 'outgoing' | null>(null);
   const [newMarkName, setNewMarkName] = useState('');
   const [newMarkAmount, setNewMarkAmount] = useState('');
@@ -137,7 +139,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
               className="input"
               value={editMarkName}
               onChange={(e) => setEditMarkName(e.target.value)}
-              placeholder="Description"
+              placeholder={t('description')}
               autoFocus
             />
             <div className="mark-edit-row">
@@ -146,7 +148,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
                 className="input"
                 value={editMarkAmount}
                 onChange={(e) => setEditMarkAmount(e.target.value)}
-                placeholder="Amount"
+                placeholder={t('amount')}
                 step="0.01"
               />
               <select
@@ -163,14 +165,14 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
               value={editMarkCategoryId}
               onChange={(e) => setEditMarkCategoryId(e.target.value)}
             >
-              <option value="">No category link</option>
+              <option value="">{t('noCategoryLink')}</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
             <div className="mark-edit-actions">
-              <button className="btn btn-primary btn-sm" onClick={saveMarkEdit}>Save</button>
-              <button className="btn btn-secondary btn-sm" onClick={cancelMarkEdit}>Cancel</button>
+              <button className="btn btn-primary btn-sm" onClick={saveMarkEdit}>{t('save')}</button>
+              <button className="btn btn-secondary btn-sm" onClick={cancelMarkEdit}>{t('cancel')}</button>
             </div>
           </div>
         </div>
@@ -213,7 +215,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
           <button
             className="btn-icon btn-move-mark"
             onClick={() => setMovingMarkId(mark.id)}
-            title="Move to another sheet"
+            title={t('moveToAnotherSheet')}
           >
             →
           </button>
@@ -221,7 +223,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
         <button
           className="btn-icon btn-remove-mark"
           onClick={() => removeMark(mark.id)}
-          title="Remove mark"
+          title={t('removeTransaction')}
         >
           &times;
         </button>
@@ -234,7 +236,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
       <input
         type="text"
         className="input"
-        placeholder="Description"
+        placeholder={t('description')}
         value={newMarkName}
         onChange={(e) => setNewMarkName(e.target.value)}
         autoFocus
@@ -243,7 +245,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
         <input
           type="number"
           className="input"
-          placeholder="Amount"
+          placeholder={t('amount')}
           value={newMarkAmount}
           onChange={(e) => setNewMarkAmount(e.target.value)}
           step="0.01"
@@ -262,14 +264,14 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
         value={newMarkCategoryId}
         onChange={(e) => setNewMarkCategoryId(e.target.value)}
       >
-        <option value="">No category link</option>
+        <option value="">{t('noCategoryLink')}</option>
         {categories.map((cat) => (
           <option key={cat.id} value={cat.id}>{cat.name}</option>
         ))}
       </select>
       <div className="add-mark-actions">
         <button className="btn btn-primary btn-sm" onClick={() => handleAddMark(type)}>
-          Add
+          {t('add')}
         </button>
         <button className="btn btn-secondary btn-sm" onClick={() => {
           setIsAdding(null);
@@ -278,7 +280,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
           setNewMarkCurrency('USD');
           setNewMarkCategoryId('');
         }}>
-          Cancel
+          {t('cancel')}
         </button>
       </div>
     </div>
@@ -289,12 +291,12 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
   return (
     <div className="marks-panel">
       <div className="marks-panel-header">
-        <h2>Marks</h2>
+        <h2>{t('transactions')}</h2>
         <button className="btn-icon" onClick={onClose}>&times;</button>
       </div>
 
       <div className="dollar-blue-rate">
-        <span className="rate-label">Dollar Blue:</span>
+        <span className="rate-label">{t('dollarBlue')}</span>
         {isEditingRate ? (
           <input
             type="number"
@@ -313,7 +315,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
               setRateInput(dollarBlueRate.toString());
               setIsEditingRate(true);
             }}
-            title="Click to edit"
+            title={t('clickToEdit')}
           >
             ARS ${dollarBlueRate}
           </button>
@@ -322,7 +324,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
 
       <div className="marks-section incoming">
         <div className="marks-section-header">
-          <h3>Incoming</h3>
+          <h3>{t('incoming')}</h3>
           <span className="marks-total">
             ${completedIncoming.toFixed(2)} / ${totalIncoming.toFixed(2)}
           </span>
@@ -335,7 +337,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
         </div>
         <div className="marks-list">
           {incomingMarks.length === 0 && !isAdding && (
-            <p className="empty-marks">No incoming marks</p>
+            <p className="empty-marks">{t('noIncomingTransactions')}</p>
           )}
           {incomingMarks.map(renderMarkItem)}
           {isAdding === 'incoming' ? (
@@ -345,7 +347,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
               className="btn btn-secondary btn-sm add-mark-btn"
               onClick={() => setIsAdding('incoming')}
             >
-              + Add Incoming
+              {t('addIncoming')}
             </button>
           )}
         </div>
@@ -353,7 +355,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
 
       <div className="marks-section outgoing">
         <div className="marks-section-header">
-          <h3>Outgoing</h3>
+          <h3>{t('outgoing')}</h3>
           <span className="marks-total">
             ${completedOutgoing.toFixed(2)} / ${totalOutgoing.toFixed(2)}
           </span>
@@ -366,7 +368,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
         </div>
         <div className="marks-list">
           {outgoingMarks.length === 0 && !isAdding && (
-            <p className="empty-marks">No outgoing marks</p>
+            <p className="empty-marks">{t('noOutgoingTransactions')}</p>
           )}
           {outgoingMarks.map(renderMarkItem)}
           {isAdding === 'outgoing' ? (
@@ -376,7 +378,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
               className="btn btn-secondary btn-sm add-mark-btn"
               onClick={() => setIsAdding('outgoing')}
             >
-              + Add Outgoing
+              {t('addOutgoing')}
             </button>
           )}
         </div>
@@ -384,13 +386,13 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
 
       <div className="marks-summary">
         <div className="summary-row">
-          <span>Expected Balance:</span>
+          <span>{t('expectedBalance')}</span>
           <span className={totalIncoming - totalOutgoing >= 0 ? 'positive' : 'negative'}>
             ${(totalIncoming - totalOutgoing).toFixed(2)}
           </span>
         </div>
         <div className="summary-row">
-          <span>Actual Balance:</span>
+          <span>{t('actualBalance')}</span>
           <span className={completedIncoming - completedOutgoing >= 0 ? 'positive' : 'negative'}>
             ${(completedIncoming - completedOutgoing).toFixed(2)}
           </span>
@@ -401,20 +403,20 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
-              <h2>Move Mark</h2>
+              <h2>{t('moveTransaction')}</h2>
               <button className="btn-icon" onClick={() => {
                 setMovingMarkId(null);
                 setSelectedTargetSheet('');
               }}>&times;</button>
             </div>
             <div className="modal-content">
-              <p>Select a sheet to move this mark to:</p>
+              <p>{t('moveToSheet')}</p>
               <select
                 className="input"
                 value={selectedTargetSheet}
                 onChange={(e) => setSelectedTargetSheet(e.target.value)}
               >
-                <option value="">Select a sheet...</option>
+                <option value="">{t('selectSheetOption')}</option>
                 {otherSheets.map((sheet) => (
                   <option key={sheet.id} value={sheet.id}>{sheet.name}</option>
                 ))}
@@ -426,12 +428,12 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
                 onClick={handleMoveMark}
                 disabled={!selectedTargetSheet}
               >
-                Move
+                {t('move')}
               </button>
               <button className="btn btn-secondary" onClick={() => {
                 setMovingMarkId(null);
                 setSelectedTargetSheet('');
-              }}>Cancel</button>
+              }}>{t('cancel')}</button>
             </div>
           </div>
         </div>

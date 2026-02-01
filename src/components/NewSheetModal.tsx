@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useSettings } from '../context/SettingsContext';
 import { categoryColors, getRandomColor } from '../utils/colors';
 import type { Category } from '../types';
 
@@ -9,6 +10,7 @@ interface NewSheetModalProps {
 
 export const NewSheetModal: React.FC<NewSheetModalProps> = ({ onClose }) => {
   const { state, createSheet } = useApp();
+  const { t } = useSettings();
   const [step, setStep] = useState<'name' | 'template' | 'custom'>('name');
   const [sheetName, setSheetName] = useState(
     new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -57,17 +59,17 @@ export const NewSheetModal: React.FC<NewSheetModalProps> = ({ onClose }) => {
     <div className="modal-overlay">
       <div className="modal modal-large">
         <div className="modal-header">
-          <h2>Start New Month</h2>
+          <h2>{t('newSheetTitle')}</h2>
           <button className="btn-icon" onClick={onClose}>&times;</button>
         </div>
 
         {step === 'name' && (
           <div className="step-content">
-            <p>What would you like to name this month's sheet?</p>
+            <p>{t('sheetNameQuestion')}</p>
             <input
               type="text"
               className="input"
-              placeholder="Sheet name"
+              placeholder={t('sheetNamePlaceholder')}
               value={sheetName}
               onChange={(e) => setSheetName(e.target.value)}
               autoFocus
@@ -78,20 +80,20 @@ export const NewSheetModal: React.FC<NewSheetModalProps> = ({ onClose }) => {
                 onClick={() => setStep('template')}
                 disabled={!sheetName.trim()}
               >
-                Continue
+                {t('continue')}
               </button>
-              <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+              <button className="btn btn-secondary" onClick={onClose}>{t('cancel')}</button>
             </div>
           </div>
         )}
 
         {step === 'template' && (
           <div className="step-content">
-            <p>Would you like to use a template or create custom categories?</p>
+            <p>{t('templateOrCustom')}</p>
 
             {state.templates.length > 0 && (
               <div className="template-selection">
-                <h3>Use a Template</h3>
+                <h3>{t('useATemplate')}</h3>
                 <div className="template-grid">
                   {state.templates.map((template) => (
                     <div
@@ -100,7 +102,7 @@ export const NewSheetModal: React.FC<NewSheetModalProps> = ({ onClose }) => {
                       onClick={() => setSelectedTemplateId(template.id)}
                     >
                       <h4>{template.name}</h4>
-                      <p>{template.categories.length} categories</p>
+                      <p>{template.categories.length} {t('categories')}</p>
                       <div className="template-preview">
                         {template.categories.slice(0, 3).map((cat, i) => (
                           <span key={i} className="category-dot" style={{ backgroundColor: cat.color }} />
@@ -116,23 +118,23 @@ export const NewSheetModal: React.FC<NewSheetModalProps> = ({ onClose }) => {
             <div className="modal-actions">
               {selectedTemplateId && (
                 <button className="btn btn-primary" onClick={handleCreateFromTemplate}>
-                  Create from Template
+                  {t('createFromTemplate')}
                 </button>
               )}
               <button className="btn btn-secondary" onClick={() => {
                 setSelectedTemplateId(null);
                 setStep('custom');
               }}>
-                Create Custom Categories
+                {t('createCustomCategories')}
               </button>
-              <button className="btn btn-secondary" onClick={() => setStep('name')}>Back</button>
+              <button className="btn btn-secondary" onClick={() => setStep('name')}>{t('back')}</button>
             </div>
           </div>
         )}
 
         {step === 'custom' && (
           <div className="step-content">
-            <h3>Create Categories for "{sheetName}"</h3>
+            <h3>{t('createCategories')} "{sheetName}"</h3>
 
             <div className="categories-list">
               {customCategories.map((cat, index) => (
@@ -147,7 +149,7 @@ export const NewSheetModal: React.FC<NewSheetModalProps> = ({ onClose }) => {
               <input
                 type="text"
                 className="input"
-                placeholder="Category name"
+                placeholder={t('categoryNamePlaceholder')}
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
@@ -155,7 +157,7 @@ export const NewSheetModal: React.FC<NewSheetModalProps> = ({ onClose }) => {
               <input
                 type="number"
                 className="input input-small"
-                placeholder="Amount"
+                placeholder={t('amount')}
                 value={newCategoryAmount}
                 onChange={(e) => setNewCategoryAmount(e.target.value)}
                 step="0.01"
@@ -171,7 +173,7 @@ export const NewSheetModal: React.FC<NewSheetModalProps> = ({ onClose }) => {
                   />
                 ))}
               </div>
-              <button className="btn btn-secondary" onClick={handleAddCategory}>Add</button>
+              <button className="btn btn-secondary" onClick={handleAddCategory}>{t('add')}</button>
             </div>
 
             <div className="modal-actions">
@@ -180,9 +182,9 @@ export const NewSheetModal: React.FC<NewSheetModalProps> = ({ onClose }) => {
                 onClick={handleCreateCustom}
                 disabled={customCategories.length === 0}
               >
-                Create Sheet
+                {t('createSheet')}
               </button>
-              <button className="btn btn-secondary" onClick={() => setStep('template')}>Back</button>
+              <button className="btn btn-secondary" onClick={() => setStep('template')}>{t('back')}</button>
             </div>
           </div>
         )}

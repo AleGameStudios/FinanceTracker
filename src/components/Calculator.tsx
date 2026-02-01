@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useSettings } from '../context/SettingsContext';
 
 interface CalculatorProps {
   isOpen: boolean;
@@ -50,6 +51,7 @@ const saveHistory = (entries: HistoryEntry[]) => {
 };
 
 export const Calculator: React.FC<CalculatorProps> = ({ isOpen, onClose }) => {
+  const { t } = useSettings();
   const [display, setDisplay] = useState('0');
   const [previousValue, setPreviousValue] = useState<number | null>(null);
   const [operation, setOperation] = useState<string | null>(null);
@@ -282,7 +284,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ isOpen, onClose }) => {
       }}
     >
       <div className="calculator-header">
-        <h2>Calculator</h2>
+        <h2>{t('calculator')}</h2>
         <button className="btn-icon" onClick={onClose}>&times;</button>
       </div>
 
@@ -317,16 +319,16 @@ export const Calculator: React.FC<CalculatorProps> = ({ isOpen, onClose }) => {
 
       <div className="calculator-history">
         <div className="calculator-history-header">
-          <span>History</span>
+          <span>{t('history')}</span>
           {history.length > 0 && (
-            <button className="btn-icon btn-clear-history" onClick={clearHistory} title="Clear history">
+            <button className="btn-icon btn-clear-history" onClick={clearHistory} title={t('clearHistory')}>
               &times;
             </button>
           )}
         </div>
         <div className="calculator-history-list">
           {history.length === 0 ? (
-            <p className="calculator-history-empty">No calculations yet</p>
+            <p className="calculator-history-empty">{t('noCalculations')}</p>
           ) : (
             history.map((entry, index) => (
               <div key={index} className="calculator-history-entry" onClick={() => setDisplay(entry.result)}>

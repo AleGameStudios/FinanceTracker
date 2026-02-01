@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Category, HistoryEntry } from '../types';
 import { useApp } from '../context/AppContext';
+import { useSettings } from '../context/SettingsContext';
 
 // Safe expression evaluator for basic math operations
 const evaluateExpression = (expr: string): number | null => {
@@ -34,6 +35,7 @@ interface CategoryCardProps {
 
 export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode = 'grid' }) => {
   const { state, updateCategoryAmount, removeCategory } = useApp();
+  const { t } = useSettings();
   const [isEditing, setIsEditing] = useState(false);
   const [editAmount, setEditAmount] = useState(category.amount.toString());
   const [note, setNote] = useState('');
@@ -130,12 +132,12 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
               setEditAmount(category.amount.toString());
               setIsEditing(true);
             }}>
-              Edit
+              {t('edit')}
             </button>
             <button
               className="btn-icon btn-remove"
               onClick={() => setShowRemoveConfirm(true)}
-              title="Remove category"
+              title={t('removeCategory')}
             >
               &times;
             </button>
@@ -153,36 +155,36 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
             <input
               type="text"
               className="input"
-              placeholder="Note (optional)"
+              placeholder={t('noteOptional')}
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
-            <button className="btn btn-primary btn-sm" onClick={handleSave}>Save</button>
+            <button className="btn btn-primary btn-sm" onClick={handleSave}>{t('save')}</button>
             <button className="btn btn-secondary btn-sm" onClick={() => {
               setIsEditing(false);
               setNote('');
-            }}>Cancel</button>
+            }}>{t('cancel')}</button>
           </div>
         )}
 
         {showRemoveConfirm && (
           <div className="modal-overlay">
             <div className="modal">
-              <h3>Remove Category</h3>
-              <p>Are you sure you want to remove "{category.name}"?</p>
+              <h3>{t('removeCategory')}</h3>
+              <p>{t('removeCategoryConfirm')} "{category.name}"?</p>
               <input
                 type="text"
                 className="input"
-                placeholder="Reason for removal (optional)"
+                placeholder={t('reasonForRemoval')}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
               />
               <div className="modal-actions">
-                <button className="btn btn-danger" onClick={handleRemove}>Remove</button>
+                <button className="btn btn-danger" onClick={handleRemove}>{t('remove')}</button>
                 <button className="btn btn-secondary" onClick={() => {
                   setShowRemoveConfirm(false);
                   setNote('');
-                }}>Cancel</button>
+                }}>{t('cancel')}</button>
               </div>
             </div>
           </div>
@@ -191,21 +193,21 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
         {quickAdjustAmount !== null && (
           <div className="modal-overlay">
             <div className="modal">
-              <h3>Quick Adjust: {quickAdjustAmount > 0 ? '+' : ''}{quickAdjustAmount}</h3>
+              <h3>{t('quickAdjust')}: {quickAdjustAmount > 0 ? '+' : ''}{quickAdjustAmount}</h3>
               <p>
                 {category.name}: ${category.amount.toFixed(2)} → ${(category.amount + quickAdjustAmount).toFixed(2)}
               </p>
               <input
                 type="text"
                 className="input"
-                placeholder="Add a note (optional)"
+                placeholder={t('addNoteOptional')}
                 value={quickAdjustNote}
                 onChange={(e) => setQuickAdjustNote(e.target.value)}
                 autoFocus
               />
               <div className="modal-actions">
-                <button className="btn btn-primary" onClick={handleQuickAdjustConfirm}>Confirm</button>
-                <button className="btn btn-secondary" onClick={handleQuickAdjustCancel}>Cancel</button>
+                <button className="btn btn-primary" onClick={handleQuickAdjustConfirm}>{t('confirm')}</button>
+                <button className="btn btn-secondary" onClick={handleQuickAdjustCancel}>{t('cancel')}</button>
               </div>
             </div>
           </div>
@@ -215,12 +217,12 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
           <div className="modal-overlay">
             <div className="modal">
               <div className="modal-header">
-                <h3>{category.name} History</h3>
+                <h3>{category.name} - {t('categoryHistoryTitle')}</h3>
                 <button className="btn-icon" onClick={() => setShowHistory(false)}>&times;</button>
               </div>
               <div className="category-history-list">
                 {categoryHistory.length === 0 ? (
-                  <p className="empty-message">No history for this category.</p>
+                  <p className="empty-message">{t('noCategoryHistory')}</p>
                 ) : (
                   categoryHistory.map((entry) => (
                     <div key={entry.id} className="category-history-entry">
@@ -263,7 +265,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
         <button
           className="btn-icon btn-remove"
           onClick={() => setShowRemoveConfirm(true)}
-          title="Remove category"
+          title={t('removeCategory')}
         >
           &times;
         </button>
@@ -282,7 +284,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
             setEditAmount(category.amount.toString());
             setIsEditing(true);
           }}>
-            Edit Amount
+            {t('editAmount')}
           </button>
         </div>
       ) : (
@@ -298,16 +300,16 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
           <input
             type="text"
             className="input"
-            placeholder="Note (optional)"
+            placeholder={t('noteOptional')}
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
           <div className="edit-actions">
-            <button className="btn btn-primary" onClick={handleSave}>Save</button>
+            <button className="btn btn-primary" onClick={handleSave}>{t('save')}</button>
             <button className="btn btn-secondary" onClick={() => {
               setIsEditing(false);
               setNote('');
-            }}>Cancel</button>
+            }}>{t('cancel')}</button>
           </div>
         </div>
       )}
@@ -315,21 +317,21 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
       {showRemoveConfirm && (
         <div className="modal-overlay">
           <div className="modal">
-            <h3>Remove Category</h3>
-            <p>Are you sure you want to remove "{category.name}"?</p>
+            <h3>{t('removeCategory')}</h3>
+            <p>{t('removeCategoryConfirm')} "{category.name}"?</p>
             <input
               type="text"
               className="input"
-              placeholder="Reason for removal (optional)"
+              placeholder={t('reasonForRemoval')}
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
             <div className="modal-actions">
-              <button className="btn btn-danger" onClick={handleRemove}>Remove</button>
+              <button className="btn btn-danger" onClick={handleRemove}>{t('remove')}</button>
               <button className="btn btn-secondary" onClick={() => {
                 setShowRemoveConfirm(false);
                 setNote('');
-              }}>Cancel</button>
+              }}>{t('cancel')}</button>
             </div>
           </div>
         </div>
@@ -338,21 +340,21 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
       {quickAdjustAmount !== null && (
         <div className="modal-overlay">
           <div className="modal">
-            <h3>Quick Adjust: {quickAdjustAmount > 0 ? '+' : ''}{quickAdjustAmount}</h3>
+            <h3>{t('quickAdjust')}: {quickAdjustAmount > 0 ? '+' : ''}{quickAdjustAmount}</h3>
             <p>
               {category.name}: ${category.amount.toFixed(2)} → ${(category.amount + quickAdjustAmount).toFixed(2)}
             </p>
             <input
               type="text"
               className="input"
-              placeholder="Add a note (optional)"
+              placeholder={t('addNoteOptional')}
               value={quickAdjustNote}
               onChange={(e) => setQuickAdjustNote(e.target.value)}
               autoFocus
             />
             <div className="modal-actions">
-              <button className="btn btn-primary" onClick={handleQuickAdjustConfirm}>Confirm</button>
-              <button className="btn btn-secondary" onClick={handleQuickAdjustCancel}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleQuickAdjustConfirm}>{t('confirm')}</button>
+              <button className="btn btn-secondary" onClick={handleQuickAdjustCancel}>{t('cancel')}</button>
             </div>
           </div>
         </div>
@@ -362,12 +364,12 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
-              <h3>{category.name} History</h3>
+              <h3>{category.name} - {t('categoryHistoryTitle')}</h3>
               <button className="btn-icon" onClick={() => setShowHistory(false)}>&times;</button>
             </div>
             <div className="category-history-list">
               {categoryHistory.length === 0 ? (
-                <p className="empty-message">No history for this category.</p>
+                <p className="empty-message">{t('noCategoryHistory')}</p>
               ) : (
                 categoryHistory.map((entry) => (
                   <div key={entry.id} className="category-history-entry">

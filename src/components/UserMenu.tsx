@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import './UserMenu.css';
 
 export const UserMenu: React.FC = () => {
   const { user, logout } = useAuth();
+  const { t } = useSettings();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -63,7 +65,7 @@ export const UserMenu: React.FC = () => {
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-            Sign out
+            {t('signOut')}
           </button>
         </div>
       )}

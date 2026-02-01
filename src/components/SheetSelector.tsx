@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useSettings } from '../context/SettingsContext';
 
 interface SheetSelectorProps {
   onNewSheet: () => void;
@@ -7,6 +8,7 @@ interface SheetSelectorProps {
 
 export const SheetSelector: React.FC<SheetSelectorProps> = ({ onNewSheet }) => {
   const { state, setActiveSheet, deleteSheet, updateCurrentBalance } = useApp();
+  const { t } = useSettings();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [balanceInput, setBalanceInput] = useState('');
@@ -60,7 +62,7 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({ onNewSheet }) => {
                   e.stopPropagation();
                   setShowDeleteConfirm(sheet.id);
                 }}
-                title="Delete sheet"
+                title={t('deleteSheet')}
               >
                 &times;
               </button>
@@ -68,14 +70,14 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({ onNewSheet }) => {
           </div>
         ))}
         <button className="btn btn-primary btn-new-sheet" onClick={onNewSheet}>
-          + New Month
+          + {t('newSheet')}
         </button>
       </div>
 
       {activeSheet && (
         <div className="sheet-info">
           <div className="current-balance">
-            <span className="balance-label">Current Balance:</span>
+            <span className="balance-label">{t('currentBalance')}</span>
             {isEditingBalance ? (
               <input
                 type="number"
@@ -88,16 +90,16 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({ onNewSheet }) => {
                 step="0.01"
               />
             ) : (
-              <button className="balance-value" onClick={handleBalanceClick} title="Click to edit">
+              <button className="balance-value" onClick={handleBalanceClick} title={t('clickToEdit')}>
                 ${(activeSheet.currentBalance || 0).toFixed(2)}
               </button>
             )}
           </div>
           <span className="sheet-date">
-            Started: {new Date(activeSheet.createdAt).toLocaleDateString()}
+            {t('started')} {new Date(activeSheet.createdAt).toLocaleDateString()}
           </span>
           <span className="sheet-total">
-            Month Total: ${activeSheet.categories.reduce((sum, cat) => sum + cat.amount, 0).toFixed(2)}
+            {t('monthTotal')} ${activeSheet.categories.reduce((sum, cat) => sum + cat.amount, 0).toFixed(2)}
           </span>
         </div>
       )}
@@ -105,14 +107,14 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({ onNewSheet }) => {
       {showDeleteConfirm && (
         <div className="modal-overlay">
           <div className="modal">
-            <h3>Delete Sheet</h3>
-            <p>Are you sure you want to delete this sheet? This action cannot be undone.</p>
+            <h3>{t('deleteSheet')}</h3>
+            <p>{t('deleteSheetConfirm')}</p>
             <div className="modal-actions">
               <button className="btn btn-danger" onClick={() => handleDeleteSheet(showDeleteConfirm)}>
-                Delete
+                {t('delete')}
               </button>
               <button className="btn btn-secondary" onClick={() => setShowDeleteConfirm(null)}>
-                Cancel
+                {t('cancel')}
               </button>
             </div>
           </div>
