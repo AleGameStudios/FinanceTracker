@@ -410,7 +410,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
 
       <div className="marks-panel-content">
         <div className="dollar-blue-rate">
-        <div className="dollar-blue-header">
+          <div className="dollar-blue-header">
           <span className="rate-label">{t('dollarBlue')}</span>
           {isFetchingRate ? (
             <span className="rate-fetching">{t('dollarBlueFetching')}</span>
