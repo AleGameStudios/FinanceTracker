@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider, useApp } from './context/AppContext';
+import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { CategoryCard } from './components/CategoryCard';
 import { AddCategory } from './components/AddCategory';
 import { SheetSelector } from './components/SheetSelector';
@@ -13,11 +14,13 @@ import { Calculator } from './components/Calculator';
 import { Notes } from './components/Notes';
 import { LoginScreen } from './components/LoginScreen';
 import { UserMenu } from './components/UserMenu';
+import { MobileNav } from './components/MobileNav';
 import { importData } from './utils/storage';
 import './App.css';
 
 const AppContent: React.FC = () => {
   const { state, getActiveSheet, setViewMode, importData: importAppData, isLoading, isSyncing } = useApp();
+  const { t, isMobileMenuOpen, setMobileMenuOpen } = useSettings();
   const [showNewSheet, setShowNewSheet] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -35,7 +38,7 @@ const AppContent: React.FC = () => {
       <div className="app">
         <div className="loading-screen">
           <div className="loading-spinner"></div>
-          <p>Loading your data...</p>
+          <p>{t('loadingData')}</p>
         </div>
       </div>
     );
@@ -51,11 +54,10 @@ const AppContent: React.FC = () => {
       try {
         const data = await importData(file);
         importAppData(data);
-      } catch (error) {
-        alert('Failed to import data. Please make sure the file is a valid backup.');
+      } catch {
+        alert(t('importError'));
       }
     }
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -66,23 +68,27 @@ const AppContent: React.FC = () => {
     return (
       <div className="app">
         <header className="header">
-          <h1>Finance Tracker</h1>
-          <UserMenu />
+          <div className="header-left">
+            <h1>{t('appName')}</h1>
+          </div>
+          <div className="header-right">
+            <UserMenu />
+          </div>
         </header>
         <main className="main welcome-screen">
           <div className="welcome-content">
-            <h2>Welcome to Finance Tracker</h2>
-            <p>Start by creating your first monthly sheet to track your finances.</p>
+            <h2>{t('welcomeTitle')}</h2>
+            <p>{t('welcomeDescription')}</p>
             <button className="btn btn-primary btn-large" onClick={() => setShowNewSheet(true)}>
-              Create Your First Sheet
+              {t('createFirstSheet')}
             </button>
-            <p className="text-muted">or</p>
+            <p className="text-muted">{t('or')}</p>
             <button className="btn btn-secondary" onClick={() => setShowTemplates(true)}>
-              Create a Template First
+              {t('createTemplateFirst')}
             </button>
-            <p className="text-muted">or</p>
+            <p className="text-muted">{t('or')}</p>
             <button className="btn btn-secondary" onClick={handleImportClick}>
-              Import Existing Data
+              {t('importExistingData')}
             </button>
             <input
               type="file"
@@ -103,34 +109,62 @@ const AppContent: React.FC = () => {
     <div className={`app ${showMarks ? 'with-sidebar-left' : ''} ${showCalculator ? 'with-sidebar-right' : ''}`}>
       <header className="header">
         <div className="header-left">
-          <h1>Finance Tracker</h1>
-          {isSyncing && <span className="sync-indicator">Syncing...</span>}
+          <h1>{t('appName')}</h1>
+          {isSyncing && <span className="sync-indicator">{t('syncing')}</span>}
         </div>
         <nav className="nav">
           <button
             className={`nav-btn ${showMarks ? 'active' : ''}`}
             onClick={() => setShowMarks(!showMarks)}
           >
-            Marks
+            {t('marks')}
           </button>
           <button
             className={`nav-btn ${showCalculator ? 'active' : ''}`}
             onClick={() => setShowCalculator(!showCalculator)}
           >
-            Calculator
+            {t('calculator')}
           </button>
           <button
             className={`nav-btn ${showNotes ? 'active' : ''}`}
             onClick={() => setShowNotes(!showNotes)}
           >
-            Notes
+            {t('notes')}
           </button>
-          <button className="nav-btn" onClick={() => setShowTemplates(true)}>Templates</button>
-          <button className="nav-btn" onClick={() => setShowHistory(true)}>History</button>
-          <button className="nav-btn" onClick={() => setShowSettings(true)}>Settings</button>
+          <button className="nav-btn" onClick={() => setShowTemplates(true)}>{t('templates')}</button>
+          <button className="nav-btn" onClick={() => setShowHistory(true)}>{t('history')}</button>
+          <button className="nav-btn" onClick={() => setShowSettings(true)}>{t('settings')}</button>
           <UserMenu />
         </nav>
+        <div className="header-right">
+          <UserMenu />
+          <button
+            className="mobile-menu-btn"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Open menu"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+        </div>
       </header>
+
+      <MobileNav
+        isOpen={isMobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        showMarks={showMarks}
+        showCalculator={showCalculator}
+        showNotes={showNotes}
+        onToggleMarks={() => setShowMarks(!showMarks)}
+        onToggleCalculator={() => setShowCalculator(!showCalculator)}
+        onToggleNotes={() => setShowNotes(!showNotes)}
+        onShowTemplates={() => setShowTemplates(true)}
+        onShowHistory={() => setShowHistory(true)}
+        onShowSettings={() => setShowSettings(true)}
+      />
 
       <div className="app-body">
         <MarksPanel isOpen={showMarks} onClose={() => setShowMarks(false)} />
@@ -178,7 +212,7 @@ const AppContent: React.FC = () => {
               </>
             ) : (
               <div className="empty-state">
-                <p>Select a sheet or create a new one to get started.</p>
+                <p>{t('selectSheet')}</p>
               </div>
             )}
           </main>
@@ -198,13 +232,14 @@ const AppContent: React.FC = () => {
 
 const AuthenticatedApp: React.FC = () => {
   const { user, loading } = useAuth();
+  const { t } = useSettings();
 
   if (loading) {
     return (
       <div className="app">
         <div className="loading-screen">
           <div className="loading-spinner"></div>
-          <p>Loading...</p>
+          <p>{t('loading')}</p>
         </div>
       </div>
     );
@@ -223,9 +258,11 @@ const AuthenticatedApp: React.FC = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <AuthenticatedApp />
-    </AuthProvider>
+    <SettingsProvider>
+      <AuthProvider>
+        <AuthenticatedApp />
+      </AuthProvider>
+    </SettingsProvider>
   );
 }
 

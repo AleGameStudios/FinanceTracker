@@ -1,9 +1,11 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import './LoginScreen.css';
 
 export const LoginScreen: React.FC = () => {
   const { login, loading, error } = useAuth();
+  const { t } = useSettings();
 
   const handleLogin = async () => {
     try {
@@ -17,13 +19,13 @@ export const LoginScreen: React.FC = () => {
     <div className="login-screen">
       <div className="login-container">
         <div className="login-header">
-          <h1>Finance Tracker</h1>
-          <p>Track your finances with categories, templates, and monthly sheets</p>
+          <h1>{t('appName')}</h1>
+          <p>{t('appDescription')}</p>
         </div>
 
         <div className="login-content">
-          <h2>Welcome</h2>
-          <p>Sign in to sync your data across devices</p>
+          <h2>{t('welcome')}</h2>
+          <p>{t('signInToSync')}</p>
 
           {error && (
             <div className="login-error">
@@ -54,12 +56,12 @@ export const LoginScreen: React.FC = () => {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            {loading ? 'Signing in...' : 'Sign in with Google'}
+            {loading ? t('signingIn') : t('signInWithGoogle')}
           </button>
         </div>
 
         <div className="login-footer">
-          <p>Your data is stored securely in the cloud</p>
+          <p>{t('dataStoredSecurely')}</p>
         </div>
       </div>
     </div>

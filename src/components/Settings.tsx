@@ -1,6 +1,9 @@
 import React, { useRef } from 'react';
 import { useApp } from '../context/AppContext';
+import { useSettings } from '../context/SettingsContext';
 import { exportData, importData } from '../utils/storage';
+import type { Theme } from '../context/SettingsContext';
+import type { Language } from '../i18n';
 
 interface SettingsProps {
   onClose: () => void;
@@ -8,6 +11,7 @@ interface SettingsProps {
 
 export const Settings: React.FC<SettingsProps> = ({ onClose }) => {
   const { state, importData: importAppData } = useApp();
+  const { t, theme, setTheme, language, setLanguage, palette, setPalette, palettePresets } = useSettings();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = () => {
@@ -20,29 +24,104 @@ export const Settings: React.FC<SettingsProps> = ({ onClose }) => {
       try {
         const data = await importData(file);
         importAppData(data);
-        alert('Data imported successfully!');
-      } catch (error) {
-        alert('Failed to import data. Please check the file format.');
+        alert(t('importSuccess'));
+      } catch {
+        alert(t('importError'));
       }
     }
   };
 
+  const isPaletteActive = (presetColors: { primary: string; accent: string }) => {
+    return palette.primary === presetColors.primary && palette.accent === presetColors.accent;
+  };
+
   return (
     <div className="modal-overlay">
-      <div className="modal">
+      <div className="modal modal-large">
         <div className="modal-header">
-          <h2>Settings</h2>
+          <h2>{t('settings')}</h2>
           <button className="btn-icon" onClick={onClose}>&times;</button>
         </div>
 
         <div className="settings-content">
+          {/* Appearance Section */}
           <div className="settings-section">
-            <h3>Data Management</h3>
-            <p>Export your data to create a backup or import previously exported data.</p>
+            <h3>{t('appearance')}</h3>
+            <div className="settings-section-appearance">
+              {/* Theme */}
+              <div className="settings-row">
+                <span className="settings-row-label">{t('theme')}</span>
+                <div className="theme-toggle">
+                  <button
+                    className={`theme-toggle-btn ${theme === 'light' ? 'active' : ''}`}
+                    onClick={() => setTheme('light' as Theme)}
+                  >
+                    {t('lightMode')}
+                  </button>
+                  <button
+                    className={`theme-toggle-btn ${theme === 'dark' ? 'active' : ''}`}
+                    onClick={() => setTheme('dark' as Theme)}
+                  >
+                    {t('darkMode')}
+                  </button>
+                  <button
+                    className={`theme-toggle-btn ${theme === 'system' ? 'active' : ''}`}
+                    onClick={() => setTheme('system' as Theme)}
+                  >
+                    {t('systemTheme')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Language */}
+              <div className="settings-row">
+                <span className="settings-row-label">{t('language')}</span>
+                <select
+                  className="language-select"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as Language)}
+                >
+                  <option value="en">{t('english')}</option>
+                  <option value="es">{t('spanish')}</option>
+                </select>
+              </div>
+
+              {/* Color Palette */}
+              <div>
+                <span className="settings-row-label">{t('colorPalette')}</span>
+                <div className="palette-presets">
+                  {palettePresets.map((preset) => (
+                    <button
+                      key={preset.name}
+                      className={`palette-preset ${isPaletteActive(preset.colors) ? 'active' : ''}`}
+                      onClick={() => setPalette(preset.colors)}
+                    >
+                      <div className="palette-colors">
+                        <div
+                          className="palette-color"
+                          style={{ backgroundColor: preset.colors.primary }}
+                        />
+                        <div
+                          className="palette-color"
+                          style={{ backgroundColor: preset.colors.accent }}
+                        />
+                      </div>
+                      <span className="palette-name">{preset.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Data Management */}
+          <div className="settings-section">
+            <h3>{t('dataManagement')}</h3>
+            <p>{t('exportDescription')}</p>
 
             <div className="settings-actions">
               <button className="btn btn-primary" onClick={handleExport}>
-                Export Data
+                {t('exportData')}
               </button>
 
               <input
@@ -56,38 +135,40 @@ export const Settings: React.FC<SettingsProps> = ({ onClose }) => {
                 className="btn btn-secondary"
                 onClick={() => fileInputRef.current?.click()}
               >
-                Import Data
+                {t('importData')}
               </button>
             </div>
           </div>
 
+          {/* Statistics */}
           <div className="settings-section">
-            <h3>Statistics</h3>
+            <h3>{t('statistics')}</h3>
             <div className="stats-grid">
               <div className="stat-item">
                 <span className="stat-value">{state.sheets.length}</span>
-                <span className="stat-label">Sheets</span>
+                <span className="stat-label">{t('sheets')}</span>
               </div>
               <div className="stat-item">
                 <span className="stat-value">{state.templates.length}</span>
-                <span className="stat-label">Templates</span>
+                <span className="stat-label">{t('templates')}</span>
               </div>
               <div className="stat-item">
                 <span className="stat-value">{state.history.length}</span>
-                <span className="stat-label">History Entries</span>
+                <span className="stat-label">{t('historyEntries')}</span>
               </div>
             </div>
           </div>
 
+          {/* About */}
           <div className="settings-section">
-            <h3>About</h3>
+            <h3>{t('about')}</h3>
             <p>Finance Tracker PWA v1.0.0</p>
-            <p className="text-muted">Track your finances with categories, templates, and monthly sheets.</p>
+            <p className="text-muted">{t('appDescription')}</p>
           </div>
         </div>
 
         <div className="modal-actions">
-          <button className="btn btn-secondary" onClick={onClose}>Close</button>
+          <button className="btn btn-secondary" onClick={onClose}>{t('close')}</button>
         </div>
       </div>
     </div>
