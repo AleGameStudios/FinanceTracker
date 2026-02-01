@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { CategoryCard } from './components/CategoryCard';
 import { AddCategory } from './components/AddCategory';
@@ -10,10 +10,11 @@ import { Settings } from './components/Settings';
 import { MarksPanel } from './components/MarksPanel';
 import { Calculator } from './components/Calculator';
 import { Notes } from './components/Notes';
+import { importData } from './utils/storage';
 import './App.css';
 
 const AppContent: React.FC = () => {
-  const { state, getActiveSheet, setViewMode } = useApp();
+  const { state, getActiveSheet, setViewMode, importData: importAppData } = useApp();
   const [showNewSheet, setShowNewSheet] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -21,9 +22,30 @@ const AppContent: React.FC = () => {
   const [showMarks, setShowMarks] = useState(true);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeSheet = getActiveSheet();
   const viewMode = state.viewMode || 'grid';
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const data = await importData(file);
+        importAppData(data);
+      } catch (error) {
+        alert('Failed to import data. Please make sure the file is a valid backup.');
+      }
+    }
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   // Show welcome screen if no sheets exist
   if (state.sheets.length === 0) {
@@ -43,6 +65,17 @@ const AppContent: React.FC = () => {
             <button className="btn btn-secondary" onClick={() => setShowTemplates(true)}>
               Create a Template First
             </button>
+            <p className="text-muted">or</p>
+            <button className="btn btn-secondary" onClick={handleImportClick}>
+              Import Existing Data
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".json"
+              style={{ display: 'none' }}
+            />
           </div>
         </main>
         {showNewSheet && <NewSheetModal onClose={() => setShowNewSheet(false)} />}
