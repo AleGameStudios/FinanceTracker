@@ -311,10 +311,24 @@ const appReducer = (state: AppData, action: Action): AppData => {
         ? (isCompleting ? -amountToApply : amountToApply)
         : (isCompleting ? amountToApply : -amountToApply);
 
-      // Balance change is in the mark's currency (no conversion needed)
+      // Calculate balance change with currency conversion if needed
+      let balanceAmountToApply = mark.amount;
+      if (mark.balanceId) {
+        const linkedBalance = activeSheet.balances?.find(b => b.id === mark.balanceId);
+        if (linkedBalance && linkedBalance.currency !== mark.currency) {
+          // Convert between currencies
+          if (mark.currency === 'ARS' && linkedBalance.currency === 'USD') {
+            // Mark is ARS, balance is USD - convert ARS to USD
+            balanceAmountToApply = mark.amount / dollarBlueRate;
+          } else if (mark.currency === 'USD' && linkedBalance.currency === 'ARS') {
+            // Mark is USD, balance is ARS - convert USD to ARS
+            balanceAmountToApply = mark.amount * dollarBlueRate;
+          }
+        }
+      }
       const balanceChange = mark.type === 'outgoing'
-        ? (isCompleting ? -mark.amount : mark.amount)
-        : (isCompleting ? mark.amount : -mark.amount);
+        ? (isCompleting ? -balanceAmountToApply : balanceAmountToApply)
+        : (isCompleting ? balanceAmountToApply : -balanceAmountToApply);
 
       return {
         ...state,
