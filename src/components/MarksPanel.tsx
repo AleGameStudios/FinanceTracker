@@ -411,118 +411,118 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
       <div className="marks-panel-content">
         <div className="dollar-blue-rate">
           <div className="dollar-blue-header">
-          <span className="rate-label">{t('dollarBlue')}</span>
-          {isFetchingRate ? (
-            <span className="rate-fetching">{t('dollarBlueFetching')}</span>
-          ) : isEditingRate ? (
-            <input
-              type="number"
-              className="input rate-input"
-              value={rateInput}
-              onChange={(e) => setRateInput(e.target.value)}
-              onBlur={handleRateSave}
-              onKeyDown={handleRateKeyDown}
-              autoFocus
-              step="0.01"
+            <span className="rate-label">{t('dollarBlue')}</span>
+            {isFetchingRate ? (
+              <span className="rate-fetching">{t('dollarBlueFetching')}</span>
+            ) : isEditingRate ? (
+              <input
+                type="number"
+                className="input rate-input"
+                value={rateInput}
+                onChange={(e) => setRateInput(e.target.value)}
+                onBlur={handleRateSave}
+                onKeyDown={handleRateKeyDown}
+                autoFocus
+                step="0.01"
+              />
+            ) : (
+              <button
+                className="rate-value"
+                onClick={() => {
+                  setRateInput(dollarBlueRate.toString());
+                  setIsEditingRate(true);
+                }}
+                title={t('clickToEdit')}
+              >
+                ARS ${dollarBlueRate.toLocaleString('es-AR')}
+              </button>
+            )}
+            <button
+              className="btn btn-secondary btn-sm btn-refresh-rate"
+              onClick={handleFetchRate}
+              disabled={isFetchingRate}
+              title={t('refreshRate')}
+            >
+              {isFetchingRate ? '...' : '↻'}
+            </button>
+          </div>
+          {rateFetchError && (
+            <span className="rate-error">{t('dollarBlueFetchError')}</span>
+          )}
+          {dollarBlueRateData && (
+            <div className="dollar-blue-details">
+              <span>{t('dollarBlueCompra')}: ${dollarBlueRateData.compra.toLocaleString('es-AR')}</span>
+              <span>{t('dollarBlueVenta')}: ${dollarBlueRateData.venta.toLocaleString('es-AR')}</span>
+            </div>
+          )}
+          {dollarBlueRateData && dollarBlueRateData.sources.length > 0 && (
+            <div className="dollar-blue-sources">
+              {t('dollarBlueSources')}: {dollarBlueRateData.sources.map(s => s.name).join(', ')}
+            </div>
+          )}
+        </div>
+
+        <div className="marks-section incoming">
+          <div className="marks-section-header">
+            <h3>{t('incoming')}</h3>
+            <span className="marks-total">
+              ${completedIncoming.toFixed(2)} / ${totalIncoming.toFixed(2)}
+            </span>
+          </div>
+          <div className="marks-progress">
+            <div
+              className="marks-progress-bar incoming"
+              style={{ width: totalIncoming > 0 ? `${(completedIncoming / totalIncoming) * 100}%` : '0%' }}
             />
-          ) : (
-            <button
-              className="rate-value"
-              onClick={() => {
-                setRateInput(dollarBlueRate.toString());
-                setIsEditingRate(true);
-            }}
-            title={t('clickToEdit')}
-          >
-            ARS ${dollarBlueRate.toLocaleString('es-AR')}
-          </button>
-          )}
-          <button
-            className="btn btn-secondary btn-sm btn-refresh-rate"
-            onClick={handleFetchRate}
-            disabled={isFetchingRate}
-            title={t('refreshRate')}
-          >
-            {isFetchingRate ? '...' : '↻'}
-          </button>
-        </div>
-        {rateFetchError && (
-          <span className="rate-error">{t('dollarBlueFetchError')}</span>
-        )}
-        {dollarBlueRateData && (
-          <div className="dollar-blue-details">
-            <span>{t('dollarBlueCompra')}: ${dollarBlueRateData.compra.toLocaleString('es-AR')}</span>
-            <span>{t('dollarBlueVenta')}: ${dollarBlueRateData.venta.toLocaleString('es-AR')}</span>
           </div>
-        )}
-        {dollarBlueRateData && dollarBlueRateData.sources.length > 0 && (
-          <div className="dollar-blue-sources">
-            {t('dollarBlueSources')}: {dollarBlueRateData.sources.map(s => s.name).join(', ')}
+          <div className="marks-list">
+            {incomingMarks.length === 0 && !isAdding && (
+              <p className="empty-marks">{t('noIncomingTransactions')}</p>
+            )}
+            {incomingMarks.map(renderMarkItem)}
+            {isAdding === 'incoming' ? (
+              renderAddForm('incoming')
+            ) : (
+              <button
+                className="btn btn-secondary btn-sm add-mark-btn"
+                onClick={() => setIsAdding('incoming')}
+              >
+                {t('addIncoming')}
+              </button>
+            )}
           </div>
-        )}
-      </div>
+        </div>
 
-      <div className="marks-section incoming">
-        <div className="marks-section-header">
-          <h3>{t('incoming')}</h3>
-          <span className="marks-total">
-            ${completedIncoming.toFixed(2)} / ${totalIncoming.toFixed(2)}
-          </span>
+        <div className="marks-section outgoing">
+          <div className="marks-section-header">
+            <h3>{t('outgoing')}</h3>
+            <span className="marks-total">
+              ${completedOutgoing.toFixed(2)} / ${totalOutgoing.toFixed(2)}
+            </span>
+          </div>
+          <div className="marks-progress">
+            <div
+              className="marks-progress-bar outgoing"
+              style={{ width: totalOutgoing > 0 ? `${(completedOutgoing / totalOutgoing) * 100}%` : '0%' }}
+            />
+          </div>
+          <div className="marks-list">
+            {outgoingMarks.length === 0 && !isAdding && (
+              <p className="empty-marks">{t('noOutgoingTransactions')}</p>
+            )}
+            {outgoingMarks.map(renderMarkItem)}
+            {isAdding === 'outgoing' ? (
+              renderAddForm('outgoing')
+            ) : (
+              <button
+                className="btn btn-secondary btn-sm add-mark-btn"
+                onClick={() => setIsAdding('outgoing')}
+              >
+                {t('addOutgoing')}
+              </button>
+            )}
+          </div>
         </div>
-        <div className="marks-progress">
-          <div
-            className="marks-progress-bar incoming"
-            style={{ width: totalIncoming > 0 ? `${(completedIncoming / totalIncoming) * 100}%` : '0%' }}
-          />
-        </div>
-        <div className="marks-list">
-          {incomingMarks.length === 0 && !isAdding && (
-            <p className="empty-marks">{t('noIncomingTransactions')}</p>
-          )}
-          {incomingMarks.map(renderMarkItem)}
-          {isAdding === 'incoming' ? (
-            renderAddForm('incoming')
-          ) : (
-            <button
-              className="btn btn-secondary btn-sm add-mark-btn"
-              onClick={() => setIsAdding('incoming')}
-            >
-              {t('addIncoming')}
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="marks-section outgoing">
-        <div className="marks-section-header">
-          <h3>{t('outgoing')}</h3>
-          <span className="marks-total">
-            ${completedOutgoing.toFixed(2)} / ${totalOutgoing.toFixed(2)}
-          </span>
-        </div>
-        <div className="marks-progress">
-          <div
-            className="marks-progress-bar outgoing"
-            style={{ width: totalOutgoing > 0 ? `${(completedOutgoing / totalOutgoing) * 100}%` : '0%' }}
-          />
-        </div>
-        <div className="marks-list">
-          {outgoingMarks.length === 0 && !isAdding && (
-            <p className="empty-marks">{t('noOutgoingTransactions')}</p>
-          )}
-          {outgoingMarks.map(renderMarkItem)}
-          {isAdding === 'outgoing' ? (
-            renderAddForm('outgoing')
-          ) : (
-            <button
-              className="btn btn-secondary btn-sm add-mark-btn"
-              onClick={() => setIsAdding('outgoing')}
-            >
-              {t('addOutgoing')}
-            </button>
-          )}
-        </div>
-      </div>
 
         <div className="marks-summary">
           <div className="summary-row">
