@@ -7,13 +7,38 @@ const defaultData: AppData = {
   templates: [],
   history: [],
   activeSheetId: null,
+  viewMode: 'grid',
+  notes: '',
+  dollarBlueRate: 1200, // Default rate, user should update
 };
 
 export const loadData = (): AppData => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const data = JSON.parse(stored);
+      // Migrate old data to include new fields
+      return {
+        ...defaultData,
+        ...data,
+        sheets: data.sheets?.map((s: any) => ({
+          ...s,
+          marks: (s.marks || []).map((m: any) => ({
+            ...m,
+            currency: m.currency || 'USD', // Default to USD for existing marks
+          })),
+        })) || [],
+        templates: data.templates?.map((t: any) => ({
+          ...t,
+          marks: (t.marks || []).map((m: any) => ({
+            ...m,
+            currency: m.currency || 'USD',
+          })),
+        })) || [],
+        viewMode: data.viewMode || 'grid',
+        notes: data.notes || '',
+        dollarBlueRate: data.dollarBlueRate || 1200,
+      };
     }
   } catch (error) {
     console.error('Failed to load data from localStorage:', error);

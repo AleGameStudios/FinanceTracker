@@ -1,20 +1,72 @@
 import React, { useState } from 'react';
-import type { Category } from '../types';
+import type { Category, HistoryEntry } from '../types';
 import { useApp } from '../context/AppContext';
+
+// Safe expression evaluator for basic math operations
+const evaluateExpression = (expr: string): number | null => {
+  // Remove whitespace
+  const cleaned = expr.replace(/\s/g, '');
+
+  // Only allow numbers, operators, decimal points, and parentheses
+  if (!/^[\d+\-*/().]+$/.test(cleaned)) {
+    return null;
+  }
+
+  try {
+    // Use Function constructor for safe evaluation (no access to global scope)
+    // This is safer than eval() as it creates an isolated scope
+    const result = new Function(`return (${cleaned})`)();
+
+    // Check if result is a valid finite number
+    if (typeof result === 'number' && isFinite(result)) {
+      return Math.round(result * 100) / 100; // Round to 2 decimal places
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
 
 interface CategoryCardProps {
   category: Category;
+  viewMode?: 'grid' | 'list';
 }
 
-export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
-  const { updateCategoryAmount, removeCategory } = useApp();
+export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode = 'grid' }) => {
+  const { state, updateCategoryAmount, removeCategory } = useApp();
   const [isEditing, setIsEditing] = useState(false);
   const [editAmount, setEditAmount] = useState(category.amount.toString());
   const [note, setNote] = useState('');
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [quickAdjustAmount, setQuickAdjustAmount] = useState<number | null>(null);
+  const [quickAdjustNote, setQuickAdjustNote] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Get history entries for this category
+  const categoryHistory = state.history
+    .filter(entry => entry.categoryId === category.id)
+    .sort((a, b) => b.timestamp - a.timestamp);
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getEntryDescription = (entry: HistoryEntry) => {
+    const diff = entry.changeAmount;
+    return `$${entry.previousAmount.toFixed(2)} → $${entry.newAmount.toFixed(2)} (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})`;
+  };
 
   const handleSave = () => {
-    const newAmount = parseFloat(editAmount);
+    // Try to evaluate as expression first, fall back to parseFloat
+    const evaluated = evaluateExpression(editAmount);
+    const newAmount = evaluated !== null ? evaluated : parseFloat(editAmount);
+
     if (!isNaN(newAmount) && newAmount !== category.amount) {
       updateCategoryAmount(category.id, newAmount, note || undefined);
     }
@@ -27,15 +79,187 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
     setShowRemoveConfirm(false);
   };
 
-  const handleQuickAdjust = (adjustment: number) => {
-    const newAmount = category.amount + adjustment;
-    updateCategoryAmount(category.id, newAmount, `Quick adjust: ${adjustment > 0 ? '+' : ''}${adjustment}`);
+  const openQuickAdjustModal = (adjustment: number) => {
+    setQuickAdjustAmount(adjustment);
+    setQuickAdjustNote('');
   };
+
+  const handleQuickAdjustConfirm = () => {
+    if (quickAdjustAmount !== null) {
+      const newAmount = category.amount + quickAdjustAmount;
+      const defaultNote = `Quick adjust: ${quickAdjustAmount > 0 ? '+' : ''}${quickAdjustAmount}`;
+      updateCategoryAmount(category.id, newAmount, quickAdjustNote.trim() || defaultNote);
+      setQuickAdjustAmount(null);
+      setQuickAdjustNote('');
+    }
+  };
+
+  const handleQuickAdjustCancel = () => {
+    setQuickAdjustAmount(null);
+    setQuickAdjustNote('');
+  };
+
+  if (viewMode === 'list') {
+    return (
+      <div className="category-list-item" style={{ borderLeftColor: category.color }}>
+        <div className="category-list-main">
+          <span className="category-color-dot" style={{ backgroundColor: category.color }} />
+          <span className="category-name">{category.name}</span>
+          {categoryHistory.length > 0 && (
+            <button
+              className="btn-icon btn-history btn-history-inline"
+              onClick={() => setShowHistory(true)}
+              title={`${categoryHistory.length} history entries`}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            </button>
+          )}
+          <span className="category-amount">${category.amount.toFixed(2)}</span>
+        </div>
+
+        {!isEditing ? (
+          <div className="category-list-actions">
+            <button className="btn-adjust" onClick={() => openQuickAdjustModal(-10)}>-10</button>
+            <button className="btn-adjust" onClick={() => openQuickAdjustModal(-50)}>-50</button>
+            <button className="btn-adjust" onClick={() => openQuickAdjustModal(50)}>+50</button>
+            <button className="btn-adjust" onClick={() => openQuickAdjustModal(100)}>+100</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => {
+              setEditAmount(category.amount.toString());
+              setIsEditing(true);
+            }}>
+              Edit
+            </button>
+            <button
+              className="btn-icon btn-remove"
+              onClick={() => setShowRemoveConfirm(true)}
+              title="Remove category"
+            >
+              &times;
+            </button>
+          </div>
+        ) : (
+          <div className="category-list-edit">
+            <input
+              type="text"
+              className="input input-small"
+              value={editAmount}
+              onChange={(e) => setEditAmount(e.target.value)}
+              placeholder="e.g. 400-25"
+              autoFocus
+            />
+            <input
+              type="text"
+              className="input"
+              placeholder="Note (optional)"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+            <button className="btn btn-primary btn-sm" onClick={handleSave}>Save</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => {
+              setIsEditing(false);
+              setNote('');
+            }}>Cancel</button>
+          </div>
+        )}
+
+        {showRemoveConfirm && (
+          <div className="modal-overlay">
+            <div className="modal">
+              <h3>Remove Category</h3>
+              <p>Are you sure you want to remove "{category.name}"?</p>
+              <input
+                type="text"
+                className="input"
+                placeholder="Reason for removal (optional)"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+              <div className="modal-actions">
+                <button className="btn btn-danger" onClick={handleRemove}>Remove</button>
+                <button className="btn btn-secondary" onClick={() => {
+                  setShowRemoveConfirm(false);
+                  setNote('');
+                }}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {quickAdjustAmount !== null && (
+          <div className="modal-overlay">
+            <div className="modal">
+              <h3>Quick Adjust: {quickAdjustAmount > 0 ? '+' : ''}{quickAdjustAmount}</h3>
+              <p>
+                {category.name}: ${category.amount.toFixed(2)} → ${(category.amount + quickAdjustAmount).toFixed(2)}
+              </p>
+              <input
+                type="text"
+                className="input"
+                placeholder="Add a note (optional)"
+                value={quickAdjustNote}
+                onChange={(e) => setQuickAdjustNote(e.target.value)}
+                autoFocus
+              />
+              <div className="modal-actions">
+                <button className="btn btn-primary" onClick={handleQuickAdjustConfirm}>Confirm</button>
+                <button className="btn btn-secondary" onClick={handleQuickAdjustCancel}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showHistory && (
+          <div className="modal-overlay">
+            <div className="modal">
+              <div className="modal-header">
+                <h3>{category.name} History</h3>
+                <button className="btn-icon" onClick={() => setShowHistory(false)}>&times;</button>
+              </div>
+              <div className="category-history-list">
+                {categoryHistory.length === 0 ? (
+                  <p className="empty-message">No history for this category.</p>
+                ) : (
+                  categoryHistory.map((entry) => (
+                    <div key={entry.id} className="category-history-entry">
+                      <div className="category-history-change">
+                        {getEntryDescription(entry)}
+                      </div>
+                      {entry.note && (
+                        <div className="category-history-note">{entry.note}</div>
+                      )}
+                      <div className="category-history-time">{formatDate(entry.timestamp)}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="category-card" style={{ borderLeftColor: category.color }}>
       <div className="category-header">
-        <h3 className="category-name">{category.name}</h3>
+        <div className="category-title-row">
+          <h3 className="category-name">{category.name}</h3>
+          {categoryHistory.length > 0 && (
+            <button
+              className="btn-icon btn-history"
+              onClick={() => setShowHistory(true)}
+              title={`${categoryHistory.length} history entries`}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            </button>
+          )}
+        </div>
         <button
           className="btn-icon btn-remove"
           onClick={() => setShowRemoveConfirm(true)}
@@ -49,10 +273,10 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
         <div className="category-content">
           <div className="category-amount">${category.amount.toFixed(2)}</div>
           <div className="category-actions">
-            <button className="btn-adjust" onClick={() => handleQuickAdjust(-10)}>-10</button>
-            <button className="btn-adjust" onClick={() => handleQuickAdjust(-50)}>-50</button>
-            <button className="btn-adjust" onClick={() => handleQuickAdjust(50)}>+50</button>
-            <button className="btn-adjust" onClick={() => handleQuickAdjust(100)}>+100</button>
+            <button className="btn-adjust" onClick={() => openQuickAdjustModal(-10)}>-10</button>
+            <button className="btn-adjust" onClick={() => openQuickAdjustModal(-50)}>-50</button>
+            <button className="btn-adjust" onClick={() => openQuickAdjustModal(50)}>+50</button>
+            <button className="btn-adjust" onClick={() => openQuickAdjustModal(100)}>+100</button>
           </div>
           <button className="btn btn-secondary" onClick={() => {
             setEditAmount(category.amount.toString());
@@ -64,11 +288,11 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
       ) : (
         <div className="category-edit">
           <input
-            type="number"
+            type="text"
             className="input"
             value={editAmount}
             onChange={(e) => setEditAmount(e.target.value)}
-            step="0.01"
+            placeholder="e.g. 400-25"
             autoFocus
           />
           <input
@@ -106,6 +330,57 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
                 setShowRemoveConfirm(false);
                 setNote('');
               }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {quickAdjustAmount !== null && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Quick Adjust: {quickAdjustAmount > 0 ? '+' : ''}{quickAdjustAmount}</h3>
+            <p>
+              {category.name}: ${category.amount.toFixed(2)} → ${(category.amount + quickAdjustAmount).toFixed(2)}
+            </p>
+            <input
+              type="text"
+              className="input"
+              placeholder="Add a note (optional)"
+              value={quickAdjustNote}
+              onChange={(e) => setQuickAdjustNote(e.target.value)}
+              autoFocus
+            />
+            <div className="modal-actions">
+              <button className="btn btn-primary" onClick={handleQuickAdjustConfirm}>Confirm</button>
+              <button className="btn btn-secondary" onClick={handleQuickAdjustCancel}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showHistory && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>{category.name} History</h3>
+              <button className="btn-icon" onClick={() => setShowHistory(false)}>&times;</button>
+            </div>
+            <div className="category-history-list">
+              {categoryHistory.length === 0 ? (
+                <p className="empty-message">No history for this category.</p>
+              ) : (
+                categoryHistory.map((entry) => (
+                  <div key={entry.id} className="category-history-entry">
+                    <div className="category-history-change">
+                      {getEntryDescription(entry)}
+                    </div>
+                    {entry.note && (
+                      <div className="category-history-note">{entry.note}</div>
+                    )}
+                    <div className="category-history-time">{formatDate(entry.timestamp)}</div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

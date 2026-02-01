@@ -1,7 +1,20 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { categoryColors, getRandomColor } from '../utils/colors';
-import type { Category } from '../types';
+import type { Category, Mark, Currency } from '../types';
+
+// Format amount - ARS uses k for thousands, USD uses full decimals
+const formatAmount = (amount: number, currency: Currency): string => {
+  if (currency === 'ARS') {
+    if (Math.abs(amount) >= 1000) {
+      const k = amount / 1000;
+      const formatted = k % 1 === 0 ? k.toFixed(0) : k.toFixed(1);
+      return `ARS $${formatted}k`;
+    }
+    return `ARS $${amount.toFixed(0)}`;
+  }
+  return `$${amount.toFixed(2)}`;
+};
 
 interface TemplateManagerProps {
   onClose: () => void;
@@ -12,9 +25,14 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
   const [view, setView] = useState<'list' | 'create' | 'fromSheet'>('list');
   const [templateName, setTemplateName] = useState('');
   const [categories, setCategories] = useState<Omit<Category, 'id'>[]>([]);
+  const [marks, setMarks] = useState<Omit<Mark, 'id' | 'completed' | 'completedAt'>[]>([]);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryAmount, setNewCategoryAmount] = useState('0');
   const [newCategoryColor, setNewCategoryColor] = useState(getRandomColor());
+  const [newMarkName, setNewMarkName] = useState('');
+  const [newMarkAmount, setNewMarkAmount] = useState('0');
+  const [newMarkType, setNewMarkType] = useState<'incoming' | 'outgoing'>('incoming');
+  const [newMarkCurrency, setNewMarkCurrency] = useState<Currency>('USD');
   const [selectedSheetId, setSelectedSheetId] = useState('');
   const [saveAsTemplateName, setSaveAsTemplateName] = useState('');
 
@@ -35,11 +53,30 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
     setCategories(categories.filter((_, i) => i !== index));
   };
 
+  const handleAddMark = () => {
+    if (newMarkName.trim()) {
+      setMarks([...marks, {
+        name: newMarkName.trim(),
+        amount: parseFloat(newMarkAmount) || 0,
+        type: newMarkType,
+        currency: newMarkCurrency,
+      }]);
+      setNewMarkName('');
+      setNewMarkAmount('0');
+      setNewMarkCurrency('USD');
+    }
+  };
+
+  const handleRemoveMark = (index: number) => {
+    setMarks(marks.filter((_, i) => i !== index));
+  };
+
   const handleCreateTemplate = () => {
-    if (templateName.trim() && categories.length > 0) {
-      createTemplate(templateName.trim(), categories);
+    if (templateName.trim() && (categories.length > 0 || marks.length > 0)) {
+      createTemplate(templateName.trim(), categories, marks);
       setTemplateName('');
       setCategories([]);
+      setMarks([]);
       setView('list');
     }
   };
@@ -80,7 +117,10 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                   <div key={template.id} className="template-item">
                     <div className="template-info">
                       <h3>{template.name}</h3>
-                      <p>{template.categories.length} categories</p>
+                      <p>
+                        {template.categories.length} categories
+                        {(template.marks?.length || 0) > 0 && `, ${template.marks?.length} marks`}
+                      </p>
                       <div className="template-categories">
                         {template.categories.map((cat, i) => (
                           <span key={i} className="category-tag" style={{ backgroundColor: cat.color }}>
@@ -88,6 +128,15 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                           </span>
                         ))}
                       </div>
+                      {template.marks && template.marks.length > 0 && (
+                        <div className="template-marks">
+                          {template.marks.map((mark, i) => (
+                            <span key={i} className={`mark-tag ${mark.type}`}>
+                              {mark.type === 'incoming' ? '+' : '-'} {mark.name}: {formatAmount(mark.amount, mark.currency || 'USD')}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <button
                       className="btn btn-danger btn-sm"
@@ -112,50 +161,101 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
               onChange={(e) => setTemplateName(e.target.value)}
             />
 
-            <div className="categories-list">
-              {categories.map((cat, index) => (
-                <div key={index} className="category-item" style={{ borderLeftColor: cat.color }}>
-                  <span>{cat.name}: ${cat.amount}</span>
-                  <button className="btn-icon" onClick={() => handleRemoveCategory(index)}>&times;</button>
-                </div>
-              ))}
-            </div>
-
-            <div className="add-category-inline">
-              <input
-                type="text"
-                className="input"
-                placeholder="Category name"
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-              />
-              <input
-                type="number"
-                className="input input-small"
-                placeholder="Amount"
-                value={newCategoryAmount}
-                onChange={(e) => setNewCategoryAmount(e.target.value)}
-                step="0.01"
-              />
-              <div className="color-picker-inline">
-                {categoryColors.slice(0, 8).map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className={`color-option-small ${newCategoryColor === c ? 'selected' : ''}`}
-                    style={{ backgroundColor: c }}
-                    onClick={() => setNewCategoryColor(c)}
-                  />
+            <div className="template-section">
+              <h4>Categories</h4>
+              <div className="categories-list">
+                {categories.map((cat, index) => (
+                  <div key={index} className="category-item" style={{ borderLeftColor: cat.color }}>
+                    <span>{cat.name}: ${cat.amount}</span>
+                    <button className="btn-icon" onClick={() => handleRemoveCategory(index)}>&times;</button>
+                  </div>
                 ))}
               </div>
-              <button className="btn btn-secondary" onClick={handleAddCategory}>Add</button>
+
+              <div className="add-category-inline">
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Category name"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                />
+                <input
+                  type="number"
+                  className="input input-small"
+                  placeholder="Amount"
+                  value={newCategoryAmount}
+                  onChange={(e) => setNewCategoryAmount(e.target.value)}
+                  step="0.01"
+                />
+                <div className="color-picker-inline">
+                  {categoryColors.slice(0, 8).map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`color-option-small ${newCategoryColor === c ? 'selected' : ''}`}
+                      style={{ backgroundColor: c }}
+                      onClick={() => setNewCategoryColor(c)}
+                    />
+                  ))}
+                </div>
+                <button className="btn btn-secondary" onClick={handleAddCategory}>Add</button>
+              </div>
+            </div>
+
+            <div className="template-section">
+              <h4>Marks</h4>
+              <div className="marks-template-list">
+                {marks.map((mark, index) => (
+                  <div key={index} className={`mark-template-item ${mark.type}`}>
+                    <span className="mark-type-indicator">{mark.type === 'incoming' ? '+' : '-'}</span>
+                    <span>{mark.name}: {formatAmount(mark.amount, mark.currency)}</span>
+                    <button className="btn-icon" onClick={() => handleRemoveMark(index)}>&times;</button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="add-mark-inline">
+                <select
+                  className="input input-small"
+                  value={newMarkType}
+                  onChange={(e) => setNewMarkType(e.target.value as 'incoming' | 'outgoing')}
+                >
+                  <option value="incoming">Incoming</option>
+                  <option value="outgoing">Outgoing</option>
+                </select>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Mark name"
+                  value={newMarkName}
+                  onChange={(e) => setNewMarkName(e.target.value)}
+                />
+                <input
+                  type="number"
+                  className="input input-small"
+                  placeholder="Amount"
+                  value={newMarkAmount}
+                  onChange={(e) => setNewMarkAmount(e.target.value)}
+                  step="0.01"
+                />
+                <select
+                  className="input currency-select"
+                  value={newMarkCurrency}
+                  onChange={(e) => setNewMarkCurrency(e.target.value as Currency)}
+                >
+                  <option value="USD">USD</option>
+                  <option value="ARS">ARS</option>
+                </select>
+                <button className="btn btn-secondary" onClick={handleAddMark}>Add</button>
+              </div>
             </div>
 
             <div className="modal-actions">
               <button
                 className="btn btn-primary"
                 onClick={handleCreateTemplate}
-                disabled={!templateName.trim() || categories.length === 0}
+                disabled={!templateName.trim() || (categories.length === 0 && marks.length === 0)}
               >
                 Create Template
               </button>
@@ -163,6 +263,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                 setView('list');
                 setTemplateName('');
                 setCategories([]);
+                setMarks([]);
               }}>Back</button>
             </div>
           </div>
@@ -182,13 +283,18 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
             </select>
 
             {selectedSheetId && (
-              <input
-                type="text"
-                className="input"
-                placeholder="Template name"
-                value={saveAsTemplateName}
-                onChange={(e) => setSaveAsTemplateName(e.target.value)}
-              />
+              <>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Template name"
+                  value={saveAsTemplateName}
+                  onChange={(e) => setSaveAsTemplateName(e.target.value)}
+                />
+                <p className="text-muted">
+                  This will save the sheet's categories and marks as a reusable template.
+                </p>
+              </>
             )}
 
             <div className="modal-actions">
