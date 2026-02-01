@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { useSettings } from '../context/SettingsContext';
 import { exportData, importData } from '../utils/storage';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 import type { Theme } from '../context/SettingsContext';
 import type { Language } from '../i18n';
 
@@ -12,6 +13,7 @@ interface SettingsProps {
 export const Settings: React.FC<SettingsProps> = ({ onClose }) => {
   const { state, importData: importAppData } = useApp();
   const { t, theme, setTheme, language, setLanguage, palette, setPalette, palettePresets } = useSettings();
+  const { isInstallable, isInstalled, installApp } = usePWAInstall();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = () => {
@@ -158,6 +160,27 @@ export const Settings: React.FC<SettingsProps> = ({ onClose }) => {
               </div>
             </div>
           </div>
+
+          {/* Install App */}
+          {(isInstallable || isInstalled) && (
+            <div className="settings-section">
+              <h3>{t('installApp')}</h3>
+              {isInstalled ? (
+                <p className="text-muted">{t('appAlreadyInstalled')}</p>
+              ) : (
+                <div className="settings-actions">
+                  <button className="btn btn-primary" onClick={installApp}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.5rem' }}>
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                      <polyline points="7,10 12,15 17,10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    {t('installApp')}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* About */}
           <div className="settings-section">

@@ -16,12 +16,15 @@ import { Help } from './components/Help';
 import { LoginScreen } from './components/LoginScreen';
 import { UserMenu } from './components/UserMenu';
 import { MobileNav } from './components/MobileNav';
+import { InstallPrompt } from './components/InstallPrompt';
+import { usePWAInstall } from './hooks/usePWAInstall';
 import { importData } from './utils/storage';
 import './App.css';
 
 const AppContent: React.FC = () => {
   const { state, getActiveSheet, setViewMode, importData: importAppData, isLoading, isSyncing } = useApp();
   const { t, isMobileMenuOpen, setMobileMenuOpen } = useSettings();
+  const { shouldShowPrompt, installApp, dismissPrompt } = usePWAInstall();
   const [showNewSheet, setShowNewSheet] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -231,6 +234,12 @@ const AppContent: React.FC = () => {
       {showHistory && <HistoryView onClose={() => setShowHistory(false)} />}
       {showSettings && <Settings onClose={() => setShowSettings(false)} />}
       {showHelp && <Help onClose={() => setShowHelp(false)} />}
+      {shouldShowPrompt && (
+        <InstallPrompt
+          onInstall={installApp}
+          onDismiss={dismissPrompt}
+        />
+      )}
     </div>
   );
 };

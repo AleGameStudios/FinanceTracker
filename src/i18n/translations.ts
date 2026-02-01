@@ -242,6 +242,18 @@ export const translations = {
     helpTip3: 'Move transactions between sheets if you need to reorganize',
     helpTip4: 'Export your data regularly as a backup from Settings',
     helpTip5: 'Each category remembers its change history - click the clock icon to see it',
+
+    // PWA Install
+    installAppTitle: 'Install Finance Tracker',
+    installAppDescription: 'Get the full app experience on your device!',
+    installBenefit1: 'Works offline',
+    installBenefit2: 'Faster loading',
+    installBenefit3: 'Easy access from home screen',
+    installNow: 'Install Now',
+    maybeLater: 'Maybe Later',
+    dontShowAgain: "Don't show this again",
+    installApp: 'Install App',
+    appAlreadyInstalled: 'App is already installed',
   },
   es: {
     // App
@@ -484,6 +496,18 @@ export const translations = {
     helpTip3: 'Mueve transacciones entre hojas si necesitas reorganizar',
     helpTip4: 'Exporta tus datos regularmente como respaldo desde Ajustes',
     helpTip5: 'Cada categoria recuerda su historial de cambios - haz clic en el icono de reloj para verlo',
+
+    // PWA Install
+    installAppTitle: 'Instalar Gestor de Finanzas',
+    installAppDescription: 'Obtene la experiencia completa de la app en tu dispositivo!',
+    installBenefit1: 'Funciona sin conexion',
+    installBenefit2: 'Carga mas rapida',
+    installBenefit3: 'Acceso facil desde la pantalla de inicio',
+    installNow: 'Instalar Ahora',
+    maybeLater: 'Quizas Despues',
+    dontShowAgain: 'No mostrar de nuevo',
+    installApp: 'Instalar App',
+    appAlreadyInstalled: 'La app ya esta instalada',
   },
 } as const;
 

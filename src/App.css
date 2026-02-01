@@ -2318,3 +2318,76 @@ select.input {
 .help-tips li:last-child {
   margin-bottom: 0;
 }
+
+/* PWA Install Prompt */
+.modal-install {
+  max-width: 340px;
+  text-align: center;
+}
+
+.install-prompt-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  border-radius: 20px;
+  color: white;
+}
+
+.modal-install h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.modal-install > p {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.install-benefits {
+  text-align: left;
+  margin: 1rem 0 1.5rem;
+  padding-left: 1.5rem;
+}
+
+.install-benefits li {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  position: relative;
+}
+
+.install-benefits li::before {
+  content: '✓';
+  position: absolute;
+  left: -1.25rem;
+  color: var(--accent-color);
+  font-weight: bold;
+}
+
+.modal-install .modal-actions {
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-install .modal-actions .btn {
+  width: 100%;
+}
+
+.install-dont-show {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  margin-top: 1rem;
+  text-decoration: underline;
+}
+
+.install-dont-show:hover {
+  color: var(--text-primary);
+}
