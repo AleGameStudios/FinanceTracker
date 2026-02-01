@@ -278,7 +278,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
             )}
             {mark.dueDate && (
               <span className="mark-due-date-badge">
-                📅 {new Date(mark.dueDate + 'T00:00:00').toLocaleDateString()}
+                📅 {new Date(mark.dueDate + 'T00:00:00').toLocaleDateString('en-GB')}
               </span>
             )}
           </div>

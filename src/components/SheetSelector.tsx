@@ -231,7 +231,7 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({ onNewSheet }) => {
           </div>
 
           <span className="sheet-date">
-            {t('started')} {new Date(activeSheet.createdAt).toLocaleDateString()}
+            {t('started')} {new Date(activeSheet.createdAt).toLocaleDateString('en-GB')}
           </span>
           <div className="sheet-totals">
             {Object.entries(categoryTotals).map(([currency, total]) => (

@@ -63,9 +63,9 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
+    return date.toLocaleDateString('en-GB', {
       day: 'numeric',
+      month: 'short',
       hour: '2-digit',
       minute: '2-digit',
     });

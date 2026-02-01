@@ -234,7 +234,7 @@ export const Calendar: React.FC<CalendarProps> = ({ isOpen, onClose }) => {
                           {formatAmount(mark.amount, mark.currency)} • {mark.sheetName}
                         </span>
                         <span className="calendar-mark-date">
-                          {new Date(mark.dueDate! + 'T00:00:00').toLocaleDateString()}
+                          {new Date(mark.dueDate! + 'T00:00:00').toLocaleDateString('en-GB')}
                         </span>
                       </div>
                     </div>
@@ -268,7 +268,7 @@ export const Calendar: React.FC<CalendarProps> = ({ isOpen, onClose }) => {
                           {formatAmount(mark.amount, mark.currency)} • {mark.sheetName}
                         </span>
                         <span className="calendar-mark-date">
-                          {new Date(mark.dueDate! + 'T00:00:00').toLocaleDateString()}
+                          {new Date(mark.dueDate! + 'T00:00:00').toLocaleDateString('en-GB')}
                         </span>
                       </div>
                     </div>
@@ -281,11 +281,11 @@ export const Calendar: React.FC<CalendarProps> = ({ isOpen, onClose }) => {
             {selectedDate && (
               <div className="calendar-section selected-date-section">
                 <h4>
-                  {new Date(selectedDate + 'T00:00:00').toLocaleDateString(undefined, {
+                  {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', {
                     weekday: 'long',
-                    year: 'numeric',
+                    day: 'numeric',
                     month: 'long',
-                    day: 'numeric'
+                    year: 'numeric'
                   })}
                 </h4>
                 {selectedDateMarks.length === 0 ? (

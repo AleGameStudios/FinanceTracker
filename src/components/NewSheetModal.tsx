@@ -13,7 +13,7 @@ export const NewSheetModal: React.FC<NewSheetModalProps> = ({ onClose }) => {
   const { t } = useSettings();
   const [step, setStep] = useState<'name' | 'template' | 'custom'>('name');
   const [sheetName, setSheetName] = useState(
-    new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
   );
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [customCategories, setCustomCategories] = useState<Omit<Category, 'id'>[]>([]);
