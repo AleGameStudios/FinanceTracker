@@ -1,9 +1,11 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { AppData, Sheet, Template, Category, HistoryEntry, Mark, Currency } from '../types';
-import { loadData, saveData } from '../utils/storage';
+import { loadData, saveData, defaultData } from '../utils/storage';
 import { getRandomColor } from '../utils/colors';
+import { saveUserData, loadUserData, subscribeToUserData } from '../firebase';
+import type { Unsubscribe } from 'firebase/firestore';
 
 type Action =
   | { type: 'LOAD_DATA'; payload: AppData }
@@ -26,7 +28,7 @@ type Action =
   | { type: 'MOVE_MARK'; payload: { markId: string; targetSheetId: string } }
   | { type: 'UPDATE_MARK'; payload: { markId: string; name: string; amount: number; currency: Currency; categoryId?: string } };
 
-const AppContext = createContext<{
+interface AppContextType {
   state: AppData;
   dispatch: React.Dispatch<Action>;
   createSheet: (name: string, categories: Omit<Category, 'id'>[], marks?: Omit<Mark, 'id' | 'completed' | 'completedAt'>[]) => void;
@@ -49,7 +51,11 @@ const AppContext = createContext<{
   updateDollarBlueRate: (rate: number) => void;
   moveMark: (markId: string, targetSheetId: string) => void;
   updateMark: (markId: string, name: string, amount: number, currency: Currency, categoryId?: string) => void;
-} | null>(null);
+  isLoading: boolean;
+  isSyncing: boolean;
+}
+
+const AppContext = createContext<AppContextType | null>(null);
 
 const appReducer = (state: AppData, action: Action): AppData => {
   switch (action.type) {
@@ -404,12 +410,114 @@ const appReducer = (state: AppData, action: Action): AppData => {
   }
 };
 
-export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(appReducer, loadData());
+interface AppProviderProps {
+  children: ReactNode;
+  userId?: string | null;
+}
+
+export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) => {
+  const [state, dispatch] = useReducer(appReducer, defaultData);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isSyncing, setIsSyncing] = React.useState(false);
+  const unsubscribeRef = useRef<Unsubscribe | null>(null);
+  const isInitialLoad = useRef(true);
+  const lastSyncedState = useRef<string>('');
+
+  // Load initial data
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setIsLoading(true);
+
+      if (userId) {
+        // Load from Firebase for authenticated users
+        try {
+          const firebaseData = await loadUserData(userId);
+          if (firebaseData) {
+            dispatch({ type: 'LOAD_DATA', payload: firebaseData });
+            lastSyncedState.current = JSON.stringify(firebaseData);
+          } else {
+            // First time user - check if they have local data to migrate
+            const localData = loadData();
+            if (localData.sheets.length > 0) {
+              dispatch({ type: 'LOAD_DATA', payload: localData });
+              // Save local data to Firebase
+              await saveUserData(userId, localData);
+              lastSyncedState.current = JSON.stringify(localData);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load data from Firebase:', error);
+          // Fall back to local storage
+          const localData = loadData();
+          dispatch({ type: 'LOAD_DATA', payload: localData });
+        }
+      } else {
+        // Load from localStorage for non-authenticated users
+        const localData = loadData();
+        dispatch({ type: 'LOAD_DATA', payload: localData });
+      }
+
+      setIsLoading(false);
+      isInitialLoad.current = false;
+    };
+
+    loadInitialData();
+  }, [userId]);
+
+  // Subscribe to real-time updates when authenticated
+  useEffect(() => {
+    if (!userId) {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+      return;
+    }
+
+    unsubscribeRef.current = subscribeToUserData(userId, (data) => {
+      if (data && !isInitialLoad.current) {
+        const dataString = JSON.stringify(data);
+        // Only update if data actually changed from another source
+        if (dataString !== lastSyncedState.current) {
+          dispatch({ type: 'LOAD_DATA', payload: data });
+          lastSyncedState.current = dataString;
+        }
+      }
+    });
+
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+    };
+  }, [userId]);
+
+  // Save data on state changes
+  const saveDataToStorage = useCallback(async (data: AppData) => {
+    if (isInitialLoad.current) return;
+
+    const dataString = JSON.stringify(data);
+    if (dataString === lastSyncedState.current) return;
+
+    if (userId) {
+      setIsSyncing(true);
+      try {
+        await saveUserData(userId, data);
+        lastSyncedState.current = dataString;
+      } catch (error) {
+        console.error('Failed to save to Firebase:', error);
+      } finally {
+        setIsSyncing(false);
+      }
+    } else {
+      saveData(data);
+    }
+  }, [userId]);
 
   useEffect(() => {
-    saveData(state);
-  }, [state]);
+    saveDataToStorage(state);
+  }, [state, saveDataToStorage]);
 
   const createSheet = (name: string, categories: Omit<Category, 'id'>[], marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[] = []) => {
     dispatch({ type: 'CREATE_SHEET', payload: { name, categories, marks } });
@@ -521,6 +629,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateDollarBlueRate,
         moveMark,
         updateMark,
+        isLoading,
+        isSyncing,
       }}
     >
       {children}

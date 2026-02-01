@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider, useApp } from './context/AppContext';
 import { CategoryCard } from './components/CategoryCard';
 import { AddCategory } from './components/AddCategory';
@@ -10,11 +11,13 @@ import { Settings } from './components/Settings';
 import { MarksPanel } from './components/MarksPanel';
 import { Calculator } from './components/Calculator';
 import { Notes } from './components/Notes';
+import { LoginScreen } from './components/LoginScreen';
+import { UserMenu } from './components/UserMenu';
 import { importData } from './utils/storage';
 import './App.css';
 
 const AppContent: React.FC = () => {
-  const { state, getActiveSheet, setViewMode, importData: importAppData } = useApp();
+  const { state, getActiveSheet, setViewMode, importData: importAppData, isLoading, isSyncing } = useApp();
   const [showNewSheet, setShowNewSheet] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -26,6 +29,17 @@ const AppContent: React.FC = () => {
 
   const activeSheet = getActiveSheet();
   const viewMode = state.viewMode || 'grid';
+
+  if (isLoading) {
+    return (
+      <div className="app">
+        <div className="loading-screen">
+          <div className="loading-spinner"></div>
+          <p>Loading your data...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -53,6 +67,7 @@ const AppContent: React.FC = () => {
       <div className="app">
         <header className="header">
           <h1>Finance Tracker</h1>
+          <UserMenu />
         </header>
         <main className="main welcome-screen">
           <div className="welcome-content">
@@ -87,7 +102,10 @@ const AppContent: React.FC = () => {
   return (
     <div className={`app ${showMarks ? 'with-sidebar-left' : ''} ${showCalculator ? 'with-sidebar-right' : ''}`}>
       <header className="header">
-        <h1>Finance Tracker</h1>
+        <div className="header-left">
+          <h1>Finance Tracker</h1>
+          {isSyncing && <span className="sync-indicator">Syncing...</span>}
+        </div>
         <nav className="nav">
           <button
             className={`nav-btn ${showMarks ? 'active' : ''}`}
@@ -110,6 +128,7 @@ const AppContent: React.FC = () => {
           <button className="nav-btn" onClick={() => setShowTemplates(true)}>Templates</button>
           <button className="nav-btn" onClick={() => setShowHistory(true)}>History</button>
           <button className="nav-btn" onClick={() => setShowSettings(true)}>Settings</button>
+          <UserMenu />
         </nav>
       </header>
 
@@ -177,11 +196,36 @@ const AppContent: React.FC = () => {
   );
 };
 
-function App() {
+const AuthenticatedApp: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="app">
+        <div className="loading-screen">
+          <div className="loading-spinner"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginScreen />;
+  }
+
   return (
-    <AppProvider>
+    <AppProvider userId={user.uid}>
       <AppContent />
     </AppProvider>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <AuthenticatedApp />
+    </AuthProvider>
   );
 }
 

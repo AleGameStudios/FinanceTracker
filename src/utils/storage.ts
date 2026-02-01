@@ -2,7 +2,7 @@ import type { AppData } from '../types';
 
 const STORAGE_KEY = 'finance-tracker-data';
 
-const defaultData: AppData = {
+export const defaultData: AppData = {
   sheets: [],
   templates: [],
   history: [],
