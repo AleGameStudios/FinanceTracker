@@ -297,6 +297,8 @@ select.input {
   background-color: var(--border-color);
   border-radius: var(--radius-md);
   overflow: hidden;
+  flex-shrink: 0;
+  max-width: 200px;
 }
 
 .sheet-tab.active {
@@ -311,6 +313,9 @@ select.input {
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sheet-tab.active .sheet-tab-btn {
