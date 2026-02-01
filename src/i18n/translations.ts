@@ -258,6 +258,19 @@ export const translations = {
     iosInstallInstructions: 'To install on iOS:',
     iosStep1: 'Tap the Share button in Safari',
     iosStep2: 'Select "Add to Home Screen"',
+
+    // Balances & Currency
+    balances: 'Balances',
+    addBalance: 'Add Balance',
+    balanceName: 'Balance Name',
+    balanceNamePlaceholder: 'e.g., Cash, Bank Account',
+    deleteBalance: 'Delete Balance',
+    deleteBalanceConfirm: 'Are you sure you want to delete this balance?',
+    noBalances: 'No balances yet. Add one to track your money!',
+    noBalanceLink: 'No balance link',
+    currency: 'Currency',
+    convertToARS: 'Convert to ARS',
+    convertToUSD: 'Convert to USD',
   },
   es: {
     // App
@@ -516,6 +529,19 @@ export const translations = {
     iosInstallInstructions: 'Para instalar en iOS:',
     iosStep1: 'Toca el boton Compartir en Safari',
     iosStep2: 'Selecciona "Agregar a Inicio"',
+
+    // Balances & Currency
+    balances: 'Saldos',
+    addBalance: 'Agregar Saldo',
+    balanceName: 'Nombre del Saldo',
+    balanceNamePlaceholder: 'ej., Efectivo, Cuenta Bancaria',
+    deleteBalance: 'Eliminar Saldo',
+    deleteBalanceConfirm: 'Estas seguro que deseas eliminar este saldo?',
+    noBalances: 'Sin saldos aun. Agrega uno para rastrear tu dinero!',
+    noBalanceLink: 'Sin saldo vinculado',
+    currency: 'Moneda',
+    convertToARS: 'Convertir a ARS',
+    convertToUSD: 'Convertir a USD',
   },
 } as const;
 

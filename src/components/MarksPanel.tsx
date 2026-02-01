@@ -3,15 +3,14 @@ import { useApp } from '../context/AppContext';
 import { useSettings } from '../context/SettingsContext';
 import type { Mark, Currency } from '../types';
 
-// Format amount - ARS uses k for thousands, USD uses full decimals
+// Format amount - ARS uses Spanish formatting (periods for thousands, comma for decimals)
 const formatAmount = (amount: number, currency: Currency): string => {
   if (currency === 'ARS') {
-    if (Math.abs(amount) >= 1000) {
-      const k = amount / 1000;
-      const formatted = k % 1 === 0 ? k.toFixed(0) : k.toFixed(1);
-      return `ARS $${formatted}k`;
-    }
-    return `ARS $${amount.toFixed(0)}`;
+    const formatted = amount.toLocaleString('es-AR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+    return `ARS $${formatted}`;
   }
   return `$${amount.toFixed(2)}`;
 };
@@ -37,7 +36,9 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
   const [editMarkAmount, setEditMarkAmount] = useState('');
   const [editMarkCurrency, setEditMarkCurrency] = useState<Currency>('USD');
   const [newMarkCategoryId, setNewMarkCategoryId] = useState<string>('');
+  const [newMarkBalanceId, setNewMarkBalanceId] = useState<string>('');
   const [editMarkCategoryId, setEditMarkCategoryId] = useState<string>('');
+  const [editMarkBalanceId, setEditMarkBalanceId] = useState<string>('');
 
   const dollarBlueRate = state.dollarBlueRate || 1200;
 
@@ -60,11 +61,12 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
 
   const handleAddMark = (type: 'incoming' | 'outgoing') => {
     if (newMarkName.trim()) {
-      addMark(newMarkName.trim(), parseFloat(newMarkAmount) || 0, type, newMarkCurrency, newMarkCategoryId || undefined);
+      addMark(newMarkName.trim(), parseFloat(newMarkAmount) || 0, type, newMarkCurrency, newMarkCategoryId || undefined, newMarkBalanceId || undefined);
       setNewMarkName('');
       setNewMarkAmount('');
       setNewMarkCurrency('USD');
       setNewMarkCategoryId('');
+      setNewMarkBalanceId('');
       setIsAdding(null);
     }
   };
@@ -101,16 +103,18 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
     setEditMarkAmount(mark.amount.toString());
     setEditMarkCurrency(mark.currency || 'USD');
     setEditMarkCategoryId(mark.categoryId || '');
+    setEditMarkBalanceId(mark.balanceId || '');
   };
 
   const saveMarkEdit = () => {
     if (editingMarkId && editMarkName.trim()) {
-      updateMark(editingMarkId, editMarkName.trim(), parseFloat(editMarkAmount) || 0, editMarkCurrency, editMarkCategoryId || undefined);
+      updateMark(editingMarkId, editMarkName.trim(), parseFloat(editMarkAmount) || 0, editMarkCurrency, editMarkCategoryId || undefined, editMarkBalanceId || undefined);
       setEditingMarkId(null);
       setEditMarkName('');
       setEditMarkAmount('');
       setEditMarkCurrency('USD');
       setEditMarkCategoryId('');
+      setEditMarkBalanceId('');
     }
   };
 
@@ -120,9 +124,11 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
     setEditMarkAmount('');
     setEditMarkCurrency('USD');
     setEditMarkCategoryId('');
+    setEditMarkBalanceId('');
   };
 
   const categories = activeSheet?.categories || [];
+  const balances = activeSheet?.balances || [];
 
   const renderMarkItem = (mark: Mark) => {
     const currency = mark.currency || 'USD';
@@ -167,7 +173,17 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
             >
               <option value="">{t('noCategoryLink')}</option>
               {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                <option key={cat.id} value={cat.id}>{cat.name} ({cat.currency || 'USD'})</option>
+              ))}
+            </select>
+            <select
+              className="input"
+              value={editMarkBalanceId}
+              onChange={(e) => setEditMarkBalanceId(e.target.value)}
+            >
+              <option value="">{t('noBalanceLink')}</option>
+              {balances.map((bal) => (
+                <option key={bal.id} value={bal.id}>{bal.name} ({bal.currency})</option>
               ))}
             </select>
             <div className="mark-edit-actions">
@@ -180,6 +196,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
     }
 
     const linkedCategory = mark.categoryId ? categories.find(c => c.id === mark.categoryId) : null;
+    const linkedBalance = mark.balanceId ? balances.find(b => b.id === mark.balanceId) : null;
 
     return (
       <div key={mark.id} className={`mark-item ${mark.completed ? 'completed' : ''}`}>
@@ -197,6 +214,11 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
             {linkedCategory && (
               <span className="mark-category-link" style={{ backgroundColor: linkedCategory.color }}>
                 {linkedCategory.name}
+              </span>
+            )}
+            {linkedBalance && (
+              <span className="mark-balance-link">
+                {linkedBalance.name}
               </span>
             )}
           </div>
@@ -266,7 +288,17 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
       >
         <option value="">{t('noCategoryLink')}</option>
         {categories.map((cat) => (
-          <option key={cat.id} value={cat.id}>{cat.name}</option>
+          <option key={cat.id} value={cat.id}>{cat.name} ({cat.currency || 'USD'})</option>
+        ))}
+      </select>
+      <select
+        className="input"
+        value={newMarkBalanceId}
+        onChange={(e) => setNewMarkBalanceId(e.target.value)}
+      >
+        <option value="">{t('noBalanceLink')}</option>
+        {balances.map((bal) => (
+          <option key={bal.id} value={bal.id}>{bal.name} ({bal.currency})</option>
         ))}
       </select>
       <div className="add-mark-actions">
@@ -279,6 +311,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
           setNewMarkAmount('');
           setNewMarkCurrency('USD');
           setNewMarkCategoryId('');
+          setNewMarkBalanceId('');
         }}>
           {t('cancel')}
         </button>

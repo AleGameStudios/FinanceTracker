@@ -1,11 +1,19 @@
+export type Currency = 'USD' | 'ARS';
+
 export interface Category {
   id: string;
   name: string;
   amount: number;
   color: string;
+  currency: Currency;
 }
 
-export type Currency = 'USD' | 'ARS';
+export interface Balance {
+  id: string;
+  name: string;
+  amount: number;
+  currency: Currency;
+}
 
 export interface Mark {
   id: string;
@@ -16,6 +24,7 @@ export interface Mark {
   completed: boolean;
   completedAt?: number;
   categoryId?: string;
+  balanceId?: string; // Link to a specific balance
 }
 
 export interface HistoryEntry {
@@ -37,8 +46,9 @@ export interface Sheet {
   createdAt: number;
   categories: Category[];
   marks: Mark[];
+  balances: Balance[];
   isActive: boolean;
-  currentBalance?: number;
+  currentBalance?: number; // Deprecated: kept for backwards compatibility
 }
 
 export interface Template {
@@ -46,6 +56,7 @@ export interface Template {
   name: string;
   categories: Omit<Category, 'id'>[];
   marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[];
+  balances: Omit<Balance, 'id'>[];
   createdAt: number;
 }
 

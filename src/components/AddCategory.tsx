@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useSettings } from '../context/SettingsContext';
 import { categoryColors } from '../utils/colors';
+import type { Currency } from '../types';
 
 export const AddCategory: React.FC = () => {
   const { addCategory } = useApp();
@@ -10,13 +11,15 @@ export const AddCategory: React.FC = () => {
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('0');
   const [color, setColor] = useState(categoryColors[0]);
+  const [currency, setCurrency] = useState<Currency>('USD');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      addCategory(name.trim(), parseFloat(amount) || 0, color);
+      addCategory(name.trim(), parseFloat(amount) || 0, color, currency);
       setName('');
       setAmount('0');
+      setCurrency('USD');
       setIsAdding(false);
     }
   };
@@ -41,14 +44,24 @@ export const AddCategory: React.FC = () => {
         autoFocus
         required
       />
-      <input
-        type="number"
-        className="input"
-        placeholder={t('initialAmount')}
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-        step="0.01"
-      />
+      <div className="amount-currency-row">
+        <input
+          type="number"
+          className="input"
+          placeholder={t('initialAmount')}
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          step="0.01"
+        />
+        <select
+          className="currency-select"
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value as Currency)}
+        >
+          <option value="USD">USD</option>
+          <option value="ARS">ARS</option>
+        </select>
+      </div>
       <div className="color-picker">
         <label>{t('color')}:</label>
         <div className="color-options">

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import type { AppData, Sheet, Template, Category, HistoryEntry, Mark, Currency } from '../types';
+import type { AppData, Sheet, Template, Category, HistoryEntry, Mark, Currency, Balance } from '../types';
 import { loadData, saveData, defaultData } from '../utils/storage';
 import { getRandomColor } from '../utils/colors';
 import { saveUserData, loadUserData, subscribeToUserData } from '../firebase';
@@ -12,21 +12,25 @@ type Action =
   | { type: 'CREATE_SHEET'; payload: { name: string; categories: Omit<Category, 'id'>[]; marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[] } }
   | { type: 'SET_ACTIVE_SHEET'; payload: string }
   | { type: 'UPDATE_CATEGORY_AMOUNT'; payload: { categoryId: string; amount: number; note?: string } }
-  | { type: 'ADD_CATEGORY'; payload: { name: string; amount: number; color: string } }
+  | { type: 'ADD_CATEGORY'; payload: { name: string; amount: number; color: string; currency: Currency } }
   | { type: 'REMOVE_CATEGORY'; payload: { categoryId: string; note?: string } }
   | { type: 'CREATE_TEMPLATE'; payload: { name: string; categories: Omit<Category, 'id'>[]; marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[] } }
   | { type: 'DELETE_TEMPLATE'; payload: string }
   | { type: 'DELETE_SHEET'; payload: string }
   | { type: 'IMPORT_DATA'; payload: AppData }
   | { type: 'SET_VIEW_MODE'; payload: 'grid' | 'list' }
-  | { type: 'ADD_MARK'; payload: { name: string; amount: number; markType: 'incoming' | 'outgoing'; currency: Currency; categoryId?: string } }
+  | { type: 'ADD_MARK'; payload: { name: string; amount: number; markType: 'incoming' | 'outgoing'; currency: Currency; categoryId?: string; balanceId?: string } }
   | { type: 'TOGGLE_MARK'; payload: { markId: string } }
   | { type: 'REMOVE_MARK'; payload: { markId: string } }
   | { type: 'UPDATE_CURRENT_BALANCE'; payload: { amount: number } }
+  | { type: 'ADD_BALANCE'; payload: { name: string; amount: number; currency: Currency } }
+  | { type: 'UPDATE_BALANCE'; payload: { balanceId: string; name: string; amount: number; currency: Currency } }
+  | { type: 'REMOVE_BALANCE'; payload: { balanceId: string } }
   | { type: 'UPDATE_NOTES'; payload: string }
   | { type: 'UPDATE_DOLLAR_BLUE_RATE'; payload: number }
   | { type: 'MOVE_MARK'; payload: { markId: string; targetSheetId: string } }
-  | { type: 'UPDATE_MARK'; payload: { markId: string; name: string; amount: number; currency: Currency; categoryId?: string } };
+  | { type: 'UPDATE_MARK'; payload: { markId: string; name: string; amount: number; currency: Currency; categoryId?: string; balanceId?: string } }
+  | { type: 'CONVERT_CATEGORY_CURRENCY'; payload: { categoryId: string; newCurrency: Currency; convertedAmount: number } };
 
 interface AppContextType {
   state: AppData;
@@ -34,7 +38,7 @@ interface AppContextType {
   createSheet: (name: string, categories: Omit<Category, 'id'>[], marks?: Omit<Mark, 'id' | 'completed' | 'completedAt'>[]) => void;
   setActiveSheet: (sheetId: string) => void;
   updateCategoryAmount: (categoryId: string, amount: number, note?: string) => void;
-  addCategory: (name: string, amount: number, color?: string) => void;
+  addCategory: (name: string, amount: number, color?: string, currency?: Currency) => void;
   removeCategory: (categoryId: string, note?: string) => void;
   createTemplate: (name: string, categories: Omit<Category, 'id'>[], marks?: Omit<Mark, 'id' | 'completed' | 'completedAt'>[]) => void;
   createTemplateFromSheet: (name: string, sheetId: string) => void;
@@ -43,14 +47,17 @@ interface AppContextType {
   getActiveSheet: () => Sheet | null;
   importData: (data: AppData) => void;
   setViewMode: (mode: 'grid' | 'list') => void;
-  addMark: (name: string, amount: number, markType: 'incoming' | 'outgoing', currency: Currency, categoryId?: string) => void;
+  addMark: (name: string, amount: number, markType: 'incoming' | 'outgoing', currency: Currency, categoryId?: string, balanceId?: string) => void;
   toggleMark: (markId: string) => void;
   removeMark: (markId: string) => void;
   updateCurrentBalance: (amount: number) => void;
+  addBalance: (name: string, amount: number, currency: Currency) => void;
+  updateBalance: (balanceId: string, name: string, amount: number, currency: Currency) => void;
+  removeBalance: (balanceId: string) => void;
   updateNotes: (notes: string) => void;
   updateDollarBlueRate: (rate: number) => void;
   moveMark: (markId: string, targetSheetId: string) => void;
-  updateMark: (markId: string, name: string, amount: number, currency: Currency, categoryId?: string) => void;
+  updateMark: (markId: string, name: string, amount: number, currency: Currency, categoryId?: string, balanceId?: string) => void;
   isLoading: boolean;
   isSyncing: boolean;
 }
@@ -67,6 +74,7 @@ const appReducer = (state: AppData, action: Action): AppData => {
       const newCategories: Category[] = action.payload.categories.map(cat => ({
         ...cat,
         id: uuidv4(),
+        currency: cat.currency || 'USD',
       }));
 
       const newMarks: Mark[] = (action.payload.marks || []).map(mark => ({
@@ -81,6 +89,7 @@ const appReducer = (state: AppData, action: Action): AppData => {
         createdAt: Date.now(),
         categories: newCategories,
         marks: newMarks,
+        balances: [],
         isActive: true,
       };
 
@@ -148,6 +157,7 @@ const appReducer = (state: AppData, action: Action): AppData => {
         name: action.payload.name,
         amount: action.payload.amount,
         color: action.payload.color,
+        currency: action.payload.currency,
       };
 
       const historyEntry: HistoryEntry = {
@@ -262,6 +272,7 @@ const appReducer = (state: AppData, action: Action): AppData => {
         currency: action.payload.currency,
         completed: false,
         categoryId: action.payload.categoryId,
+        balanceId: action.payload.balanceId,
       };
 
       return {
@@ -296,6 +307,11 @@ const appReducer = (state: AppData, action: Action): AppData => {
         ? (isCompleting ? -amountToApply : amountToApply)
         : (isCompleting ? amountToApply : -amountToApply);
 
+      // Balance change is in the mark's currency (no conversion needed)
+      const balanceChange = mark.type === 'outgoing'
+        ? (isCompleting ? -mark.amount : mark.amount)
+        : (isCompleting ? mark.amount : -mark.amount);
+
       return {
         ...state,
         sheets: state.sheets.map(s =>
@@ -314,6 +330,13 @@ const appReducer = (state: AppData, action: Action): AppData => {
                         : c
                     )
                   : s.categories,
+                balances: mark.balanceId
+                  ? (s.balances || []).map(b =>
+                      b.id === mark.balanceId
+                        ? { ...b, amount: Math.round((b.amount + balanceChange) * 100) / 100 }
+                        : b
+                    )
+                  : s.balances,
               }
             : s
         ),
@@ -343,6 +366,62 @@ const appReducer = (state: AppData, action: Action): AppData => {
         sheets: state.sheets.map(s =>
           s.id === state.activeSheetId
             ? { ...s, currentBalance: action.payload.amount }
+            : s
+        ),
+      };
+    }
+
+    case 'ADD_BALANCE': {
+      const activeSheet = state.sheets.find(s => s.id === state.activeSheetId);
+      if (!activeSheet) return state;
+
+      const newBalance: Balance = {
+        id: uuidv4(),
+        name: action.payload.name,
+        amount: action.payload.amount,
+        currency: action.payload.currency,
+      };
+
+      return {
+        ...state,
+        sheets: state.sheets.map(s =>
+          s.id === state.activeSheetId
+            ? { ...s, balances: [...(s.balances || []), newBalance] }
+            : s
+        ),
+      };
+    }
+
+    case 'UPDATE_BALANCE': {
+      const activeSheet = state.sheets.find(s => s.id === state.activeSheetId);
+      if (!activeSheet) return state;
+
+      return {
+        ...state,
+        sheets: state.sheets.map(s =>
+          s.id === state.activeSheetId
+            ? {
+                ...s,
+                balances: (s.balances || []).map(b =>
+                  b.id === action.payload.balanceId
+                    ? { ...b, name: action.payload.name, amount: action.payload.amount, currency: action.payload.currency }
+                    : b
+                ),
+              }
+            : s
+        ),
+      };
+    }
+
+    case 'REMOVE_BALANCE': {
+      const activeSheet = state.sheets.find(s => s.id === state.activeSheetId);
+      if (!activeSheet) return state;
+
+      return {
+        ...state,
+        sheets: state.sheets.map(s =>
+          s.id === state.activeSheetId
+            ? { ...s, balances: (s.balances || []).filter(b => b.id !== action.payload.balanceId) }
             : s
         ),
       };
@@ -396,8 +475,29 @@ const appReducer = (state: AppData, action: Action): AppData => {
                 ...s,
                 marks: s.marks?.map(m =>
                   m.id === action.payload.markId
-                    ? { ...m, name: action.payload.name, amount: action.payload.amount, currency: action.payload.currency, categoryId: action.payload.categoryId }
+                    ? { ...m, name: action.payload.name, amount: action.payload.amount, currency: action.payload.currency, categoryId: action.payload.categoryId, balanceId: action.payload.balanceId }
                     : m
+                ),
+              }
+            : s
+        ),
+      };
+    }
+
+    case 'CONVERT_CATEGORY_CURRENCY': {
+      const activeSheet = state.sheets.find(s => s.id === state.activeSheetId);
+      if (!activeSheet) return state;
+
+      return {
+        ...state,
+        sheets: state.sheets.map(s =>
+          s.id === state.activeSheetId
+            ? {
+                ...s,
+                categories: s.categories.map(c =>
+                  c.id === action.payload.categoryId
+                    ? { ...c, currency: action.payload.newCurrency, amount: action.payload.convertedAmount }
+                    : c
                 ),
               }
             : s
@@ -531,8 +631,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
     dispatch({ type: 'UPDATE_CATEGORY_AMOUNT', payload: { categoryId, amount, note } });
   };
 
-  const addCategory = (name: string, amount: number, color?: string) => {
-    dispatch({ type: 'ADD_CATEGORY', payload: { name, amount, color: color || getRandomColor() } });
+  const addCategory = (name: string, amount: number, color?: string, currency: Currency = 'USD') => {
+    dispatch({ type: 'ADD_CATEGORY', payload: { name, amount, color: color || getRandomColor(), currency } });
   };
 
   const removeCategory = (categoryId: string, note?: string) => {
@@ -572,8 +672,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
     dispatch({ type: 'SET_VIEW_MODE', payload: mode });
   };
 
-  const addMark = (name: string, amount: number, markType: 'incoming' | 'outgoing', currency: Currency = 'USD', categoryId?: string) => {
-    dispatch({ type: 'ADD_MARK', payload: { name, amount, markType, currency, categoryId } });
+  const addMark = (name: string, amount: number, markType: 'incoming' | 'outgoing', currency: Currency = 'USD', categoryId?: string, balanceId?: string) => {
+    dispatch({ type: 'ADD_MARK', payload: { name, amount, markType, currency, categoryId, balanceId } });
   };
 
   const toggleMark = (markId: string) => {
@@ -588,6 +688,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
     dispatch({ type: 'UPDATE_CURRENT_BALANCE', payload: { amount } });
   };
 
+  const addBalance = (name: string, amount: number, currency: Currency) => {
+    dispatch({ type: 'ADD_BALANCE', payload: { name, amount, currency } });
+  };
+
+  const updateBalance = (balanceId: string, name: string, amount: number, currency: Currency) => {
+    dispatch({ type: 'UPDATE_BALANCE', payload: { balanceId, name, amount, currency } });
+  };
+
+  const removeBalance = (balanceId: string) => {
+    dispatch({ type: 'REMOVE_BALANCE', payload: { balanceId } });
+  };
+
   const updateNotes = (notes: string) => {
     dispatch({ type: 'UPDATE_NOTES', payload: notes });
   };
@@ -600,8 +712,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
     dispatch({ type: 'MOVE_MARK', payload: { markId, targetSheetId } });
   };
 
-  const updateMark = (markId: string, name: string, amount: number, currency: Currency, categoryId?: string) => {
-    dispatch({ type: 'UPDATE_MARK', payload: { markId, name, amount, currency, categoryId } });
+  const updateMark = (markId: string, name: string, amount: number, currency: Currency, categoryId?: string, balanceId?: string) => {
+    dispatch({ type: 'UPDATE_MARK', payload: { markId, name, amount, currency, categoryId, balanceId } });
   };
 
   return (
@@ -625,6 +737,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
         toggleMark,
         removeMark,
         updateCurrentBalance,
+        addBalance,
+        updateBalance,
+        removeBalance,
         updateNotes,
         updateDollarBlueRate,
         moveMark,

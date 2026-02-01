@@ -1,7 +1,19 @@
 import React, { useState } from 'react';
-import type { Category, HistoryEntry } from '../types';
+import type { Category, HistoryEntry, Currency } from '../types';
 import { useApp } from '../context/AppContext';
 import { useSettings } from '../context/SettingsContext';
+
+const formatCurrencyAmount = (amount: number, currency: Currency = 'USD'): string => {
+  if (currency === 'ARS') {
+    // Spanish formatting: periods for thousands, comma for decimals
+    const formatted = amount.toLocaleString('es-AR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+    return `ARS $${formatted}`;
+  }
+  return `$${amount.toFixed(2)}`;
+};
 
 // Safe expression evaluator for basic math operations
 const evaluateExpression = (expr: string): number | null => {
@@ -34,7 +46,7 @@ interface CategoryCardProps {
 }
 
 export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode = 'grid' }) => {
-  const { state, updateCategoryAmount, removeCategory } = useApp();
+  const { state, updateCategoryAmount, removeCategory, dispatch } = useApp();
   const { t } = useSettings();
   const [isEditing, setIsEditing] = useState(false);
   const [editAmount, setEditAmount] = useState(category.amount.toString());
@@ -101,6 +113,27 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
     setQuickAdjustNote('');
   };
 
+  const dollarBlueRate = state.dollarBlueRate || 1200;
+  const currentCurrency = category.currency || 'USD';
+
+  const handleConvertCurrency = () => {
+    const newCurrency: Currency = currentCurrency === 'USD' ? 'ARS' : 'USD';
+    let convertedAmount: number;
+
+    if (currentCurrency === 'USD') {
+      // Converting from USD to ARS
+      convertedAmount = Math.round(category.amount * dollarBlueRate);
+    } else {
+      // Converting from ARS to USD
+      convertedAmount = Math.round((category.amount / dollarBlueRate) * 100) / 100;
+    }
+
+    dispatch({
+      type: 'CONVERT_CATEGORY_CURRENCY',
+      payload: { categoryId: category.id, newCurrency, convertedAmount }
+    });
+  };
+
   if (viewMode === 'list') {
     return (
       <div className="category-list-item" style={{ borderLeftColor: category.color }}>
@@ -119,11 +152,18 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
               </svg>
             </button>
           )}
-          <span className="category-amount">${category.amount.toFixed(2)}</span>
+          <span className="category-amount">{formatCurrencyAmount(category.amount, category.currency)}</span>
         </div>
 
         {!isEditing ? (
           <div className="category-list-actions">
+            <button
+              className="btn-convert"
+              onClick={handleConvertCurrency}
+              title={currentCurrency === 'USD' ? t('convertToARS') : t('convertToUSD')}
+            >
+              {currentCurrency === 'USD' ? '→ARS' : '→USD'}
+            </button>
             <button className="btn-adjust" onClick={() => openQuickAdjustModal(-10)}>-10</button>
             <button className="btn-adjust" onClick={() => openQuickAdjustModal(-50)}>-50</button>
             <button className="btn-adjust" onClick={() => openQuickAdjustModal(50)}>+50</button>
@@ -273,8 +313,15 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
 
       {!isEditing ? (
         <div className="category-content">
-          <div className="category-amount">${category.amount.toFixed(2)}</div>
+          <div className="category-amount">{formatCurrencyAmount(category.amount, category.currency)}</div>
           <div className="category-actions">
+            <button
+              className="btn-convert"
+              onClick={handleConvertCurrency}
+              title={currentCurrency === 'USD' ? t('convertToARS') : t('convertToUSD')}
+            >
+              {currentCurrency === 'USD' ? '→ARS' : '→USD'}
+            </button>
             <button className="btn-adjust" onClick={() => openQuickAdjustModal(-10)}>-10</button>
             <button className="btn-adjust" onClick={() => openQuickAdjustModal(-50)}>-50</button>
             <button className="btn-adjust" onClick={() => openQuickAdjustModal(50)}>+50</button>
