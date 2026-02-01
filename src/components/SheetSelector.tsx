@@ -236,7 +236,7 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({ onNewSheet }) => {
           <div className="sheet-totals">
             {Object.entries(categoryTotals).map(([currency, total]) => (
               <span key={currency} className="sheet-total">
-                {t('monthTotal')} {formatCurrency(total, currency as Currency)}
+                {t('monthTotal')} {formatCurrency(total as number, currency as Currency)}
               </span>
             ))}
             {Object.keys(categoryTotals).length === 0 && (

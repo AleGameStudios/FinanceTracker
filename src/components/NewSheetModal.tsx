@@ -27,6 +27,7 @@ export const NewSheetModal: React.FC<NewSheetModalProps> = ({ onClose }) => {
         name: newCategoryName.trim(),
         amount: parseFloat(newCategoryAmount) || 0,
         color: newCategoryColor,
+        currency: 'USD',
       }]);
       setNewCategoryName('');
       setNewCategoryAmount('0');

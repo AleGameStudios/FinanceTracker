@@ -44,6 +44,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
         name: newCategoryName.trim(),
         amount: parseFloat(newCategoryAmount) || 0,
         color: newCategoryColor,
+        currency: 'USD',
       }]);
       setNewCategoryName('');
       setNewCategoryAmount('0');

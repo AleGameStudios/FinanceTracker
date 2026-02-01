@@ -220,6 +220,7 @@ const appReducer = (state: AppData, action: Action): AppData => {
         name: action.payload.name,
         categories: action.payload.categories,
         marks: action.payload.marks || [],
+        balances: [],
         createdAt: Date.now(),
       };
 
@@ -646,7 +647,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
   const createTemplateFromSheet = (name: string, sheetId: string) => {
     const sheet = state.sheets.find(s => s.id === sheetId);
     if (sheet) {
-      const categories = sheet.categories.map(({ name, amount, color }) => ({ name, amount, color }));
+      const categories = sheet.categories.map(({ name, amount, color, currency }) => ({ name, amount, color, currency: currency || 'USD' as const }));
       const marks = (sheet.marks || []).map(({ name, amount, type, currency }) => ({ name, amount, type, currency: currency || 'USD' as const }));
       dispatch({ type: 'CREATE_TEMPLATE', payload: { name, categories, marks } });
     }
