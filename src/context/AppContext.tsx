@@ -16,6 +16,7 @@ type Action =
   | { type: 'ADD_CATEGORY'; payload: { name: string; amount: number; color: string; currency: Currency } }
   | { type: 'REMOVE_CATEGORY'; payload: { categoryId: string; note?: string } }
   | { type: 'CREATE_TEMPLATE'; payload: { name: string; categories: Omit<Category, 'id'>[]; marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[]; balances: Omit<Balance, 'id'>[] } }
+  | { type: 'UPDATE_TEMPLATE'; payload: { templateId: string; name: string; categories: Omit<Category, 'id'>[]; marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[]; balances: Omit<Balance, 'id'>[] } }
   | { type: 'DELETE_TEMPLATE'; payload: string }
   | { type: 'DELETE_SHEET'; payload: string }
   | { type: 'IMPORT_DATA'; payload: AppData }
@@ -43,6 +44,7 @@ interface AppContextType {
   addCategory: (name: string, amount: number, color?: string, currency?: Currency) => void;
   removeCategory: (categoryId: string, note?: string) => void;
   createTemplate: (name: string, categories: Omit<Category, 'id'>[], marks?: Omit<Mark, 'id' | 'completed' | 'completedAt'>[], balances?: Omit<Balance, 'id'>[]) => void;
+  updateTemplate: (templateId: string, name: string, categories: Omit<Category, 'id'>[], marks?: Omit<Mark, 'id' | 'completed' | 'completedAt'>[], balances?: Omit<Balance, 'id'>[]) => void;
   createTemplateFromSheet: (name: string, sheetId: string) => void;
   deleteTemplate: (templateId: string) => void;
   deleteSheet: (sheetId: string) => void;
@@ -267,6 +269,23 @@ const appReducer = (state: AppData, action: Action): AppData => {
       return {
         ...state,
         templates: [...state.templates, newTemplate],
+      };
+    }
+
+    case 'UPDATE_TEMPLATE': {
+      return {
+        ...state,
+        templates: state.templates.map(t =>
+          t.id === action.payload.templateId
+            ? {
+                ...t,
+                name: action.payload.name,
+                categories: action.payload.categories,
+                marks: action.payload.marks || [],
+                balances: action.payload.balances || [],
+              }
+            : t
+        ),
       };
     }
 
@@ -910,6 +929,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
     dispatch({ type: 'CREATE_TEMPLATE', payload: { name, categories, marks, balances } });
   };
 
+  const updateTemplate = (templateId: string, name: string, categories: Omit<Category, 'id'>[], marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[] = [], balances: Omit<Balance, 'id'>[] = []) => {
+    dispatch({ type: 'UPDATE_TEMPLATE', payload: { templateId, name, categories, marks, balances } });
+  };
+
   const createTemplateFromSheet = (name: string, sheetId: string) => {
     const sheet = state.sheets.find(s => s.id === sheetId);
     if (sheet) {
@@ -1020,6 +1043,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
         addCategory,
         removeCategory,
         createTemplate,
+        updateTemplate,
         createTemplateFromSheet,
         deleteTemplate,
         deleteSheet,

@@ -33,9 +33,10 @@ interface TemplateManagerProps {
 }
 
 export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => {
-  const { state, createTemplate, deleteTemplate, createTemplateFromSheet } = useApp();
+  const { state, createTemplate, updateTemplate, deleteTemplate, createTemplateFromSheet } = useApp();
   const { t } = useSettings();
-  const [view, setView] = useState<'list' | 'create' | 'fromSheet'>('list');
+  const [view, setView] = useState<'list' | 'create' | 'edit' | 'fromSheet'>('list');
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [templateName, setTemplateName] = useState('');
   const [categories, setCategories] = useState<Omit<Category, 'id'>[]>([]);
   const [balances, setBalances] = useState<Omit<Balance, 'id'>[]>([]);
@@ -65,6 +66,11 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
   const [selectedSheetId, setSelectedSheetId] = useState('');
   const [saveAsTemplateName, setSaveAsTemplateName] = useState('');
 
+  // Editing state for existing items
+  const [editingCategoryIndex, setEditingCategoryIndex] = useState<number | null>(null);
+  const [editingBalanceIndex, setEditingBalanceIndex] = useState<number | null>(null);
+  const [editingMarkIndex, setEditingMarkIndex] = useState<number | null>(null);
+
   const handleAddCategory = () => {
     if (newCategoryName.trim()) {
       setCategories([...categories, {
@@ -88,6 +94,42 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
       categoryIndex: mark.categoryIndex === index ? undefined :
         mark.categoryIndex !== undefined && mark.categoryIndex > index ? mark.categoryIndex - 1 : mark.categoryIndex
     })));
+    setEditingCategoryIndex(null);
+  };
+
+  const handleEditCategory = (index: number) => {
+    const cat = categories[index];
+    setNewCategoryName(cat.name);
+    setNewCategoryAmount(cat.amount.toString());
+    setNewCategoryColor(cat.color);
+    setNewCategoryCurrency(cat.currency);
+    setEditingCategoryIndex(index);
+  };
+
+  const handleSaveCategory = () => {
+    if (editingCategoryIndex !== null && newCategoryName.trim()) {
+      const updatedCategories = [...categories];
+      updatedCategories[editingCategoryIndex] = {
+        name: newCategoryName.trim(),
+        amount: parseFloat(newCategoryAmount) || 0,
+        color: newCategoryColor,
+        currency: newCategoryCurrency,
+      };
+      setCategories(updatedCategories);
+      setNewCategoryName('');
+      setNewCategoryAmount('0');
+      setNewCategoryColor(getRandomColor());
+      setNewCategoryCurrency('USD');
+      setEditingCategoryIndex(null);
+    }
+  };
+
+  const handleCancelEditCategory = () => {
+    setNewCategoryName('');
+    setNewCategoryAmount('0');
+    setNewCategoryColor(getRandomColor());
+    setNewCategoryCurrency('USD');
+    setEditingCategoryIndex(null);
   };
 
   const handleAddBalance = () => {
@@ -111,6 +153,38 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
       balanceIndex: mark.balanceIndex === index ? undefined :
         mark.balanceIndex !== undefined && mark.balanceIndex > index ? mark.balanceIndex - 1 : mark.balanceIndex
     })));
+    setEditingBalanceIndex(null);
+  };
+
+  const handleEditBalance = (index: number) => {
+    const bal = balances[index];
+    setNewBalanceName(bal.name);
+    setNewBalanceAmount(bal.amount.toString());
+    setNewBalanceCurrency(bal.currency);
+    setEditingBalanceIndex(index);
+  };
+
+  const handleSaveBalance = () => {
+    if (editingBalanceIndex !== null && newBalanceName.trim()) {
+      const updatedBalances = [...balances];
+      updatedBalances[editingBalanceIndex] = {
+        name: newBalanceName.trim(),
+        amount: parseFloat(newBalanceAmount) || 0,
+        currency: newBalanceCurrency,
+      };
+      setBalances(updatedBalances);
+      setNewBalanceName('');
+      setNewBalanceAmount('0');
+      setNewBalanceCurrency('USD');
+      setEditingBalanceIndex(null);
+    }
+  };
+
+  const handleCancelEditBalance = () => {
+    setNewBalanceName('');
+    setNewBalanceAmount('0');
+    setNewBalanceCurrency('USD');
+    setEditingBalanceIndex(null);
   };
 
   const handleAddMark = () => {
@@ -135,6 +209,53 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
 
   const handleRemoveMark = (index: number) => {
     setMarks(marks.filter((_, i) => i !== index));
+    setEditingMarkIndex(null);
+  };
+
+  const handleEditMark = (index: number) => {
+    const mark = marks[index];
+    setNewMarkName(mark.name);
+    setNewMarkAmount(mark.amount.toString());
+    setNewMarkType(mark.type);
+    setNewMarkCurrency(mark.currency);
+    setNewMarkCategoryIndex(mark.categoryIndex);
+    setNewMarkBalanceIndex(mark.balanceIndex);
+    setNewMarkDueDate(mark.dueDate || '');
+    setEditingMarkIndex(index);
+  };
+
+  const handleSaveMark = () => {
+    if (editingMarkIndex !== null && newMarkName.trim()) {
+      const updatedMarks = [...marks];
+      updatedMarks[editingMarkIndex] = {
+        name: newMarkName.trim(),
+        amount: parseFloat(newMarkAmount) || 0,
+        type: newMarkType,
+        currency: newMarkCurrency,
+        categoryIndex: newMarkCategoryIndex,
+        balanceIndex: newMarkBalanceIndex,
+        dueDate: newMarkDueDate || undefined,
+      };
+      setMarks(updatedMarks);
+      setNewMarkName('');
+      setNewMarkAmount('0');
+      setNewMarkCurrency('USD');
+      setNewMarkCategoryIndex(undefined);
+      setNewMarkBalanceIndex(undefined);
+      setNewMarkDueDate('');
+      setEditingMarkIndex(null);
+    }
+  };
+
+  const handleCancelEditMark = () => {
+    setNewMarkName('');
+    setNewMarkAmount('0');
+    setNewMarkType('incoming');
+    setNewMarkCurrency('USD');
+    setNewMarkCategoryIndex(undefined);
+    setNewMarkBalanceIndex(undefined);
+    setNewMarkDueDate('');
+    setEditingMarkIndex(null);
   };
 
   const handleCreateTemplate = () => {
@@ -152,6 +273,62 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
 
       createTemplate(templateName.trim(), categories, convertedMarks, balances);
       resetForm();
+      setView('list');
+    }
+  };
+
+  const handleEditTemplate = (templateId: string) => {
+    const template = state.templates.find(t => t.id === templateId);
+    if (!template) return;
+
+    setEditingTemplateId(templateId);
+    setTemplateName(template.name);
+    setCategories(template.categories.map(c => ({ ...c })));
+    setBalances((template.balances || []).map(b => ({ ...b })));
+
+    // Convert marks from idx: format to index-based
+    const convertedMarks: TemplateMark[] = (template.marks || []).map(mark => {
+      let categoryIndex: number | undefined;
+      let balanceIndex: number | undefined;
+
+      if (mark.categoryId?.startsWith('idx:')) {
+        categoryIndex = parseInt(mark.categoryId.slice(4), 10);
+      }
+      if (mark.balanceId?.startsWith('idx:')) {
+        balanceIndex = parseInt(mark.balanceId.slice(4), 10);
+      }
+
+      return {
+        name: mark.name,
+        amount: mark.amount,
+        type: mark.type,
+        currency: mark.currency || 'USD',
+        categoryIndex,
+        balanceIndex,
+        dueDate: mark.dueDate,
+      };
+    });
+
+    setMarks(convertedMarks);
+    setView('edit');
+  };
+
+  const handleUpdateTemplate = () => {
+    if (editingTemplateId && templateName.trim() && (categories.length > 0 || marks.length > 0 || balances.length > 0)) {
+      // Convert template marks to the format expected by updateTemplate
+      const convertedMarks = marks.map(mark => ({
+        name: mark.name,
+        amount: mark.amount,
+        type: mark.type,
+        currency: mark.currency,
+        categoryId: mark.categoryIndex !== undefined ? `idx:${mark.categoryIndex}` : undefined,
+        balanceId: mark.balanceIndex !== undefined ? `idx:${mark.balanceIndex}` : undefined,
+        dueDate: mark.dueDate,
+      }));
+
+      updateTemplate(editingTemplateId, templateName.trim(), categories, convertedMarks, balances);
+      resetForm();
+      setEditingTemplateId(null);
       setView('list');
     }
   };
@@ -184,6 +361,10 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
     setNewMarkCategoryIndex(undefined);
     setNewMarkBalanceIndex(undefined);
     setNewMarkDueDate('');
+    setEditingTemplateId(null);
+    setEditingCategoryIndex(null);
+    setEditingBalanceIndex(null);
+    setEditingMarkIndex(null);
   };
 
   // Helper to get linked category/balance names for display in template list
@@ -268,12 +449,20 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                         </div>
                       )}
                     </div>
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() => deleteTemplate(template.id)}
-                    >
-                      {t('delete')}
-                    </button>
+                    <div className="template-item-actions">
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => handleEditTemplate(template.id)}
+                      >
+                        {t('edit')}
+                      </button>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => deleteTemplate(template.id)}
+                      >
+                        {t('delete')}
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -296,9 +485,12 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
               <h4>{t('categories')}</h4>
               <div className="categories-list">
                 {categories.map((cat, index) => (
-                  <div key={index} className="category-item" style={{ borderLeftColor: cat.color }}>
+                  <div key={index} className={`category-item ${editingCategoryIndex === index ? 'editing' : ''}`} style={{ borderLeftColor: cat.color }}>
                     <span>{cat.name}: {formatAmount(cat.amount, cat.currency)}</span>
-                    <button className="btn-icon" onClick={() => handleRemoveCategory(index)}>&times;</button>
+                    <div className="item-actions">
+                      <button className="btn-icon btn-edit" onClick={() => handleEditCategory(index)} title={t('edit')}>✏️</button>
+                      <button className="btn-icon" onClick={() => handleRemoveCategory(index)}>&times;</button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -338,7 +530,14 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                     />
                   ))}
                 </div>
-                <button className="btn btn-secondary" onClick={handleAddCategory}>{t('add')}</button>
+                {editingCategoryIndex !== null ? (
+                  <>
+                    <button className="btn btn-primary" onClick={handleSaveCategory}>{t('save')}</button>
+                    <button className="btn btn-secondary" onClick={handleCancelEditCategory}>{t('cancel')}</button>
+                  </>
+                ) : (
+                  <button className="btn btn-secondary" onClick={handleAddCategory}>{t('add')}</button>
+                )}
               </div>
             </div>
 
@@ -347,9 +546,12 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
               <h4>{t('balances')}</h4>
               <div className="balances-template-list">
                 {balances.map((bal, index) => (
-                  <div key={index} className="balance-template-item">
+                  <div key={index} className={`balance-template-item ${editingBalanceIndex === index ? 'editing' : ''}`}>
                     <span>💰 {bal.name}: {formatAmount(bal.amount, bal.currency)}</span>
-                    <button className="btn-icon" onClick={() => handleRemoveBalance(index)}>&times;</button>
+                    <div className="item-actions">
+                      <button className="btn-icon btn-edit" onClick={() => handleEditBalance(index)} title={t('edit')}>✏️</button>
+                      <button className="btn-icon" onClick={() => handleRemoveBalance(index)}>&times;</button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -378,7 +580,14 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                   <option value="USD">USD</option>
                   <option value="ARS">ARS</option>
                 </select>
-                <button className="btn btn-secondary" onClick={handleAddBalance}>{t('add')}</button>
+                {editingBalanceIndex !== null ? (
+                  <>
+                    <button className="btn btn-primary" onClick={handleSaveBalance}>{t('save')}</button>
+                    <button className="btn btn-secondary" onClick={handleCancelEditBalance}>{t('cancel')}</button>
+                  </>
+                ) : (
+                  <button className="btn btn-secondary" onClick={handleAddBalance}>{t('add')}</button>
+                )}
               </div>
             </div>
 
@@ -390,7 +599,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                   const linkedCat = mark.categoryIndex !== undefined ? categories[mark.categoryIndex] : null;
                   const linkedBal = mark.balanceIndex !== undefined ? balances[mark.balanceIndex] : null;
                   return (
-                    <div key={index} className={`mark-template-item ${mark.type}`}>
+                    <div key={index} className={`mark-template-item ${mark.type} ${editingMarkIndex === index ? 'editing' : ''}`}>
                       <span className="mark-type-indicator">{mark.type === 'incoming' ? '+' : '-'}</span>
                       <span className="mark-template-details">
                         {mark.name}: {formatAmount(mark.amount, mark.currency)}
@@ -398,7 +607,10 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                         {linkedBal && <span className="mark-link-badge balance"> 💰{linkedBal.name}</span>}
                         {mark.dueDate && <span className="mark-link-badge due-date"> 📅 {mark.dueDate}</span>}
                       </span>
-                      <button className="btn-icon" onClick={() => handleRemoveMark(index)}>&times;</button>
+                      <div className="item-actions">
+                        <button className="btn-icon btn-edit" onClick={() => handleEditMark(index)} title={t('edit')}>✏️</button>
+                        <button className="btn-icon" onClick={() => handleRemoveMark(index)}>&times;</button>
+                      </div>
                     </div>
                   );
                 })}
@@ -477,7 +689,14 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                       </button>
                     )}
                   </div>
-                  <button className="btn btn-secondary" onClick={handleAddMark}>{t('add')}</button>
+                  {editingMarkIndex !== null ? (
+                    <>
+                      <button className="btn btn-primary" onClick={handleSaveMark}>{t('save')}</button>
+                      <button className="btn btn-secondary" onClick={handleCancelEditMark}>{t('cancel')}</button>
+                    </>
+                  ) : (
+                    <button className="btn btn-secondary" onClick={handleAddMark}>{t('add')}</button>
+                  )}
                 </div>
               </div>
             </div>
@@ -494,6 +713,254 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                 setView('list');
                 resetForm();
               }}>{t('back')}</button>
+            </div>
+          </div>
+        )}
+
+        {view === 'edit' && (
+          <div className="template-create">
+            <h3>{t('editTemplate')}</h3>
+            <input
+              type="text"
+              className="input"
+              placeholder={t('templateName')}
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+            />
+
+            {/* Categories Section */}
+            <div className="template-section">
+              <h4>{t('categories')}</h4>
+              <div className="categories-list">
+                {categories.map((cat, index) => (
+                  <div key={index} className={`category-item ${editingCategoryIndex === index ? 'editing' : ''}`} style={{ borderLeftColor: cat.color }}>
+                    <span>{cat.name}: {formatAmount(cat.amount, cat.currency)}</span>
+                    <div className="item-actions">
+                      <button className="btn-icon btn-edit" onClick={() => handleEditCategory(index)} title={t('edit')}>✏️</button>
+                      <button className="btn-icon" onClick={() => handleRemoveCategory(index)}>&times;</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="add-category-inline">
+                <input
+                  type="text"
+                  className="input"
+                  placeholder={t('categoryNamePlaceholder')}
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                />
+                <input
+                  type="number"
+                  className="input input-small"
+                  placeholder={t('amount')}
+                  value={newCategoryAmount}
+                  onChange={(e) => setNewCategoryAmount(e.target.value)}
+                  step="0.01"
+                />
+                <select
+                  className="input currency-select"
+                  value={newCategoryCurrency}
+                  onChange={(e) => setNewCategoryCurrency(e.target.value as Currency)}
+                >
+                  <option value="USD">USD</option>
+                  <option value="ARS">ARS</option>
+                </select>
+                <div className="color-picker-inline">
+                  {categoryColors.slice(0, 8).map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`color-option-small ${newCategoryColor === c ? 'selected' : ''}`}
+                      style={{ backgroundColor: c }}
+                      onClick={() => setNewCategoryColor(c)}
+                    />
+                  ))}
+                </div>
+                {editingCategoryIndex !== null ? (
+                  <>
+                    <button className="btn btn-primary" onClick={handleSaveCategory}>{t('save')}</button>
+                    <button className="btn btn-secondary" onClick={handleCancelEditCategory}>{t('cancel')}</button>
+                  </>
+                ) : (
+                  <button className="btn btn-secondary" onClick={handleAddCategory}>{t('add')}</button>
+                )}
+              </div>
+            </div>
+
+            {/* Balances Section */}
+            <div className="template-section">
+              <h4>{t('balances')}</h4>
+              <div className="balances-template-list">
+                {balances.map((bal, index) => (
+                  <div key={index} className={`balance-template-item ${editingBalanceIndex === index ? 'editing' : ''}`}>
+                    <span>💰 {bal.name}: {formatAmount(bal.amount, bal.currency)}</span>
+                    <div className="item-actions">
+                      <button className="btn-icon btn-edit" onClick={() => handleEditBalance(index)} title={t('edit')}>✏️</button>
+                      <button className="btn-icon" onClick={() => handleRemoveBalance(index)}>&times;</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="add-balance-inline">
+                <input
+                  type="text"
+                  className="input"
+                  placeholder={t('balanceNamePlaceholder')}
+                  value={newBalanceName}
+                  onChange={(e) => setNewBalanceName(e.target.value)}
+                />
+                <input
+                  type="number"
+                  className="input input-small"
+                  placeholder={t('amount')}
+                  value={newBalanceAmount}
+                  onChange={(e) => setNewBalanceAmount(e.target.value)}
+                  step="0.01"
+                />
+                <select
+                  className="input currency-select"
+                  value={newBalanceCurrency}
+                  onChange={(e) => setNewBalanceCurrency(e.target.value as Currency)}
+                >
+                  <option value="USD">USD</option>
+                  <option value="ARS">ARS</option>
+                </select>
+                {editingBalanceIndex !== null ? (
+                  <>
+                    <button className="btn btn-primary" onClick={handleSaveBalance}>{t('save')}</button>
+                    <button className="btn btn-secondary" onClick={handleCancelEditBalance}>{t('cancel')}</button>
+                  </>
+                ) : (
+                  <button className="btn btn-secondary" onClick={handleAddBalance}>{t('add')}</button>
+                )}
+              </div>
+            </div>
+
+            {/* Transactions Section */}
+            <div className="template-section">
+              <h4>{t('transactions')}</h4>
+              <div className="marks-template-list">
+                {marks.map((mark, index) => {
+                  const linkedCat = mark.categoryIndex !== undefined ? categories[mark.categoryIndex] : null;
+                  const linkedBal = mark.balanceIndex !== undefined ? balances[mark.balanceIndex] : null;
+                  return (
+                    <div key={index} className={`mark-template-item ${mark.type} ${editingMarkIndex === index ? 'editing' : ''}`}>
+                      <span className="mark-type-indicator">{mark.type === 'incoming' ? '+' : '-'}</span>
+                      <span className="mark-template-details">
+                        {mark.name}: {formatAmount(mark.amount, mark.currency)}
+                        {linkedCat && <span className="mark-link-badge"> → {linkedCat.name}</span>}
+                        {linkedBal && <span className="mark-link-badge balance"> 💰{linkedBal.name}</span>}
+                        {mark.dueDate && <span className="mark-link-badge due-date"> 📅 {mark.dueDate}</span>}
+                      </span>
+                      <div className="item-actions">
+                        <button className="btn-icon btn-edit" onClick={() => handleEditMark(index)} title={t('edit')}>✏️</button>
+                        <button className="btn-icon" onClick={() => handleRemoveMark(index)}>&times;</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="add-mark-template-form">
+                <div className="add-mark-row">
+                  <select
+                    className="input input-small"
+                    value={newMarkType}
+                    onChange={(e) => setNewMarkType(e.target.value as 'incoming' | 'outgoing')}
+                  >
+                    <option value="incoming">{t('incoming')}</option>
+                    <option value="outgoing">{t('outgoing')}</option>
+                  </select>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder={t('transactionNamePlaceholder')}
+                    value={newMarkName}
+                    onChange={(e) => setNewMarkName(e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    className="input input-small"
+                    placeholder={t('amount')}
+                    value={newMarkAmount}
+                    onChange={(e) => setNewMarkAmount(e.target.value)}
+                    step="0.01"
+                  />
+                  <select
+                    className="input currency-select"
+                    value={newMarkCurrency}
+                    onChange={(e) => setNewMarkCurrency(e.target.value as Currency)}
+                  >
+                    <option value="USD">USD</option>
+                    <option value="ARS">ARS</option>
+                  </select>
+                </div>
+                <div className="add-mark-row">
+                  <select
+                    className="input"
+                    value={newMarkCategoryIndex !== undefined ? newMarkCategoryIndex.toString() : ''}
+                    onChange={(e) => setNewMarkCategoryIndex(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                  >
+                    <option value="">{t('noCategoryLink')}</option>
+                    {categories.map((cat, i) => (
+                      <option key={i} value={i}>{cat.name} ({cat.currency})</option>
+                    ))}
+                  </select>
+                  <select
+                    className="input"
+                    value={newMarkBalanceIndex !== undefined ? newMarkBalanceIndex.toString() : ''}
+                    onChange={(e) => setNewMarkBalanceIndex(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                  >
+                    <option value="">{t('noBalanceLink')}</option>
+                    {balances.map((bal, i) => (
+                      <option key={i} value={i}>{bal.name} ({bal.currency})</option>
+                    ))}
+                  </select>
+                  <div className="due-date-input">
+                    <label>{t('dueDate')}</label>
+                    <input
+                      type="date"
+                      className="input"
+                      value={newMarkDueDate}
+                      onChange={(e) => setNewMarkDueDate(e.target.value)}
+                    />
+                    {newMarkDueDate && (
+                      <button
+                        type="button"
+                        className="btn-icon btn-clear-date"
+                        onClick={() => setNewMarkDueDate('')}
+                      >
+                        &times;
+                      </button>
+                    )}
+                  </div>
+                  {editingMarkIndex !== null ? (
+                    <>
+                      <button className="btn btn-primary" onClick={handleSaveMark}>{t('save')}</button>
+                      <button className="btn btn-secondary" onClick={handleCancelEditMark}>{t('cancel')}</button>
+                    </>
+                  ) : (
+                    <button className="btn btn-secondary" onClick={handleAddMark}>{t('add')}</button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="btn btn-primary"
+                onClick={handleUpdateTemplate}
+                disabled={!templateName.trim() || (categories.length === 0 && marks.length === 0 && balances.length === 0)}
+              >
+                {t('saveChanges')}
+              </button>
+              <button className="btn btn-secondary" onClick={() => {
+                setView('list');
+                resetForm();
+              }}>{t('cancel')}</button>
             </div>
           </div>
         )}

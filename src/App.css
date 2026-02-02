@@ -1048,6 +1048,35 @@ select.input {
   border-left: 3px solid;
 }
 
+.category-item.editing,
+.balance-template-item.editing,
+.mark-template-item.editing {
+  background-color: var(--primary-light);
+  box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.item-actions {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.btn-edit {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.btn-edit:hover {
+  opacity: 1;
+}
+
+.template-item-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .add-category-inline {
   display: flex;
   gap: 0.5rem;

@@ -102,6 +102,7 @@ export const translations = {
     templateName: 'Template Name',
     useTemplate: 'Use Template',
     deleteTemplate: 'Delete Template',
+    editTemplate: 'Edit Template',
     noTemplates: 'No templates yet',
     noTemplatesMessage: 'No templates yet. Create one to get started!',
     categories: 'categories',
@@ -174,6 +175,7 @@ export const translations = {
 
     // Common
     save: 'Save',
+    saveChanges: 'Save Changes',
     cancel: 'Cancel',
     close: 'Close',
     delete: 'Delete',
@@ -419,6 +421,7 @@ export const translations = {
     templateName: 'Nombre de Plantilla',
     useTemplate: 'Usar Plantilla',
     deleteTemplate: 'Eliminar Plantilla',
+    editTemplate: 'Editar Plantilla',
     noTemplates: 'Sin plantillas aun',
     noTemplatesMessage: 'Sin plantillas aun. Crea una para comenzar!',
     categories: 'categorias',
@@ -491,6 +494,7 @@ export const translations = {
 
     // Common
     save: 'Guardar',
+    saveChanges: 'Guardar Cambios',
     cancel: 'Cancelar',
     close: 'Cerrar',
     delete: 'Eliminar',
