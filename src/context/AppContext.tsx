@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import type { AppData, Sheet, Template, Category, HistoryEntry, Mark, Currency, Balance, DollarBlueRateData, RecurrenceType } from '../types';
+import type { AppData, Sheet, Template, Category, HistoryEntry, Mark, Currency, Balance, DollarBlueRateData } from '../types';
 import { loadData, saveData, clearData, defaultData, saveBackup, loadBackup, clearBackup, savePendingChanges, loadPendingChanges, clearPendingChanges } from '../utils/storage';
 import { getRandomColor } from '../utils/colors';
 import { saveUserData, loadUserData, subscribeToUserData, forceSaveUserData } from '../firebase';
