@@ -1107,6 +1107,30 @@ select.input {
   border-color: var(--text-primary);
 }
 
+/* Edit Category Form */
+.edit-category-form {
+  margin-bottom: 1rem;
+}
+
+.edit-category-form .form-label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  margin-top: 1rem;
+}
+
+.edit-category-form .form-label:first-child {
+  margin-top: 0;
+}
+
+.color-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
+  gap: 0.5rem;
+  max-width: 100%;
+}
+
 /* New Sheet Modal */
 .step-content {
   text-align: center;

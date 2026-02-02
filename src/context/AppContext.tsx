@@ -15,6 +15,7 @@ type Action =
   | { type: 'UPDATE_CATEGORY_AMOUNT'; payload: { categoryId: string; amount: number; note?: string } }
   | { type: 'ADD_CATEGORY'; payload: { name: string; amount: number; color: string; currency: Currency } }
   | { type: 'REMOVE_CATEGORY'; payload: { categoryId: string; note?: string } }
+  | { type: 'UPDATE_CATEGORY'; payload: { categoryId: string; name: string; color: string } }
   | { type: 'CREATE_TEMPLATE'; payload: { name: string; categories: Omit<Category, 'id'>[]; marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[]; balances: Omit<Balance, 'id'>[] } }
   | { type: 'UPDATE_TEMPLATE'; payload: { templateId: string; name: string; categories: Omit<Category, 'id'>[]; marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[]; balances: Omit<Balance, 'id'>[] } }
   | { type: 'DELETE_TEMPLATE'; payload: string }
@@ -43,6 +44,7 @@ interface AppContextType {
   updateCategoryAmount: (categoryId: string, amount: number, note?: string) => void;
   addCategory: (name: string, amount: number, color?: string, currency?: Currency) => void;
   removeCategory: (categoryId: string, note?: string) => void;
+  updateCategory: (categoryId: string, name: string, color: string) => void;
   createTemplate: (name: string, categories: Omit<Category, 'id'>[], marks?: Omit<Mark, 'id' | 'completed' | 'completedAt'>[], balances?: Omit<Balance, 'id'>[]) => void;
   updateTemplate: (templateId: string, name: string, categories: Omit<Category, 'id'>[], marks?: Omit<Mark, 'id' | 'completed' | 'completedAt'>[], balances?: Omit<Balance, 'id'>[]) => void;
   createTemplateFromSheet: (name: string, sheetId: string) => void;
@@ -253,6 +255,27 @@ const appReducer = (state: AppData, action: Action): AppData => {
             : s
         ),
         history: [...state.history, historyEntry],
+      };
+    }
+
+    case 'UPDATE_CATEGORY': {
+      const activeSheet = state.sheets.find(s => s.id === state.activeSheetId);
+      if (!activeSheet) return state;
+
+      return {
+        ...state,
+        sheets: state.sheets.map(s =>
+          s.id === state.activeSheetId
+            ? {
+                ...s,
+                categories: s.categories.map(c =>
+                  c.id === action.payload.categoryId
+                    ? { ...c, name: action.payload.name, color: action.payload.color }
+                    : c
+                ),
+              }
+            : s
+        ),
       };
     }
 
@@ -925,6 +948,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
     dispatch({ type: 'REMOVE_CATEGORY', payload: { categoryId, note } });
   };
 
+  const updateCategory = (categoryId: string, name: string, color: string) => {
+    dispatch({ type: 'UPDATE_CATEGORY', payload: { categoryId, name, color } });
+  };
+
   const createTemplate = (name: string, categories: Omit<Category, 'id'>[], marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[] = [], balances: Omit<Balance, 'id'>[] = []) => {
     dispatch({ type: 'CREATE_TEMPLATE', payload: { name, categories, marks, balances } });
   };
@@ -1042,6 +1069,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
         updateCategoryAmount,
         addCategory,
         removeCategory,
+        updateCategory,
         createTemplate,
         updateTemplate,
         createTemplateFromSheet,

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { Category, HistoryEntry, Currency } from '../types';
 import { useApp } from '../context/AppContext';
 import { useSettings } from '../context/SettingsContext';
+import { categoryColors } from '../utils/colors';
 
 const formatCurrencyAmount = (amount: number, currency: Currency = 'USD'): string => {
   if (currency === 'ARS') {
@@ -46,10 +47,13 @@ interface CategoryCardProps {
 }
 
 export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode = 'grid' }) => {
-  const { state, updateCategoryAmount, removeCategory, dispatch } = useApp();
+  const { state, updateCategoryAmount, removeCategory, updateCategory, dispatch } = useApp();
   const { t } = useSettings();
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [editAmount, setEditAmount] = useState(category.amount.toString());
+  const [editName, setEditName] = useState(category.name);
+  const [editColor, setEditColor] = useState(category.color);
   const [note, setNote] = useState('');
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [quickAdjustAmount, setQuickAdjustAmount] = useState<number | null>(null);
@@ -86,6 +90,19 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
     }
     setIsEditing(false);
     setNote('');
+  };
+
+  const handleSaveDetails = () => {
+    if (editName.trim() && (editName !== category.name || editColor !== category.color)) {
+      updateCategory(category.id, editName.trim(), editColor);
+    }
+    setIsEditingDetails(false);
+  };
+
+  const handleCancelEditDetails = () => {
+    setEditName(category.name);
+    setEditColor(category.color);
+    setIsEditingDetails(false);
   };
 
   const handleRemove = () => {
@@ -140,6 +157,17 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
         <div className="category-list-main">
           <span className="category-color-dot" style={{ backgroundColor: category.color }} />
           <span className="category-name">{category.name}</span>
+          <button
+            className="btn-icon btn-edit"
+            onClick={() => {
+              setEditName(category.name);
+              setEditColor(category.color);
+              setIsEditingDetails(true);
+            }}
+            title={t('editCategory')}
+          >
+            ✏️
+          </button>
           {categoryHistory.length > 0 && (
             <button
               className="btn-icon btn-history btn-history-inline"
@@ -280,6 +308,51 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
             </div>
           </div>
         )}
+
+        {isEditingDetails && (
+          <div className="modal-overlay">
+            <div className="modal">
+              <div className="modal-header">
+                <h3>{t('editCategory')}</h3>
+                <button className="btn-icon" onClick={handleCancelEditDetails}>&times;</button>
+              </div>
+              <div className="edit-category-form">
+                <label className="form-label">{t('categoryName')}</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  autoFocus
+                />
+                <label className="form-label">{t('categoryColor')}</label>
+                <div className="color-picker-grid">
+                  {categoryColors.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`color-option ${editColor === c ? 'selected' : ''}`}
+                      style={{ backgroundColor: c }}
+                      onClick={() => setEditColor(c)}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSaveDetails}
+                  disabled={!editName.trim()}
+                >
+                  {t('save')}
+                </button>
+                <button className="btn btn-secondary" onClick={handleCancelEditDetails}>
+                  {t('cancel')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -301,6 +374,17 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
               </svg>
             </button>
           )}
+          <button
+            className="btn-icon btn-edit"
+            onClick={() => {
+              setEditName(category.name);
+              setEditColor(category.color);
+              setIsEditingDetails(true);
+            }}
+            title={t('editCategory')}
+          >
+            ✏️
+          </button>
         </div>
         <button
           className="btn-icon btn-remove"
@@ -430,6 +514,51 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditingDetails && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>{t('editCategory')}</h3>
+              <button className="btn-icon" onClick={handleCancelEditDetails}>&times;</button>
+            </div>
+            <div className="edit-category-form">
+              <label className="form-label">{t('categoryName')}</label>
+              <input
+                type="text"
+                className="input"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                autoFocus
+              />
+              <label className="form-label">{t('categoryColor')}</label>
+              <div className="color-picker-grid">
+                {categoryColors.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`color-option ${editColor === c ? 'selected' : ''}`}
+                    style={{ backgroundColor: c }}
+                    onClick={() => setEditColor(c)}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn-primary"
+                onClick={handleSaveDetails}
+                disabled={!editName.trim()}
+              >
+                {t('save')}
+              </button>
+              <button className="btn btn-secondary" onClick={handleCancelEditDetails}>
+                {t('cancel')}
+              </button>
             </div>
           </div>
         </div>
