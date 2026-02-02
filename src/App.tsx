@@ -30,7 +30,7 @@ const AppContent: React.FC = () => {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showMarks, setShowMarks] = useState(true);
+  const [showMarks, setShowMarks] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showHelp, setShowHelp] = useState(false);

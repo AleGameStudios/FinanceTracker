@@ -281,6 +281,14 @@ export const translations = {
     today: 'Today',
     dueDate: 'Due Date',
     clearDueDate: 'Clear due date',
+
+    // Recurrence
+    recurrence: 'Recurrence',
+    oneTime: 'One-time',
+    weekly: 'Weekly',
+    monthly: 'Monthly',
+    dayOfMonth: 'Day of month',
+    dayOfWeek: 'Day of week',
     noTransactionsOnDate: 'No transactions scheduled for this date',
     noScheduledTransactions: 'No scheduled transactions. Add due dates to your transactions to see them here.',
     overdueTransactions: 'Overdue',
@@ -601,6 +609,14 @@ export const translations = {
     today: 'Hoy',
     dueDate: 'Fecha de Vencimiento',
     clearDueDate: 'Quitar fecha',
+
+    // Recurrence
+    recurrence: 'Recurrencia',
+    oneTime: 'Una vez',
+    weekly: 'Semanal',
+    monthly: 'Mensual',
+    dayOfMonth: 'Dia del mes',
+    dayOfWeek: 'Dia de la semana',
     noTransactionsOnDate: 'Sin transacciones programadas para esta fecha',
     noScheduledTransactions: 'Sin transacciones programadas. Agrega fechas de vencimiento a tus transacciones para verlas aqui.',
     overdueTransactions: 'Vencidas',

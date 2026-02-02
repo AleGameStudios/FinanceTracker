@@ -4,8 +4,8 @@ import './index.css'
 import App from './App.tsx'
 import { registerSW } from 'virtual:pwa-register'
 
-// Force clear old service workers and caches (version 1.1.0 nuclear update)
-const FORCE_UPDATE_VERSION = '1.1.0'
+// Force clear old service workers and caches (version 1.2.0 recurring due dates)
+const FORCE_UPDATE_VERSION = '1.2.0'
 const FORCE_UPDATE_KEY = 'pwa-force-update-version'
 
 async function forceServiceWorkerUpdate() {

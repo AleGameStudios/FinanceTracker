@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useSettings } from '../context/SettingsContext';
 import { categoryColors, getRandomColor } from '../utils/colors';
-import type { Category, Currency, Balance } from '../types';
+import type { Category, Currency, Balance, RecurrenceType } from '../types';
 
 // Format amount - ARS uses k for thousands, USD uses full decimals
 const formatAmount = (amount: number, currency: Currency): string => {
@@ -26,6 +26,8 @@ interface TemplateMark {
   categoryIndex?: number;
   balanceIndex?: number;
   dueDate?: string;
+  recurrence?: RecurrenceType;
+  recurrenceDay?: number; // Day of month (1-31) for monthly, or day of week (0-6) for weekly
 }
 
 interface TemplateManagerProps {
@@ -61,6 +63,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
   const [newMarkCategoryIndex, setNewMarkCategoryIndex] = useState<number | undefined>(undefined);
   const [newMarkBalanceIndex, setNewMarkBalanceIndex] = useState<number | undefined>(undefined);
   const [newMarkDueDate, setNewMarkDueDate] = useState('');
+  const [newMarkRecurrence, setNewMarkRecurrence] = useState<RecurrenceType>('one-time');
+  const [newMarkRecurrenceDay, setNewMarkRecurrenceDay] = useState<number | undefined>(undefined);
 
   // From sheet state
   const [selectedSheetId, setSelectedSheetId] = useState('');
@@ -197,6 +201,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
         categoryIndex: newMarkCategoryIndex,
         balanceIndex: newMarkBalanceIndex,
         dueDate: newMarkDueDate || undefined,
+        recurrence: newMarkRecurrence,
+        recurrenceDay: newMarkRecurrenceDay,
       }]);
       setNewMarkName('');
       setNewMarkAmount('0');
@@ -204,6 +210,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
       setNewMarkCategoryIndex(undefined);
       setNewMarkBalanceIndex(undefined);
       setNewMarkDueDate('');
+      setNewMarkRecurrence('one-time');
+      setNewMarkRecurrenceDay(undefined);
     }
   };
 
@@ -221,6 +229,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
     setNewMarkCategoryIndex(mark.categoryIndex);
     setNewMarkBalanceIndex(mark.balanceIndex);
     setNewMarkDueDate(mark.dueDate || '');
+    setNewMarkRecurrence(mark.recurrence || 'one-time');
+    setNewMarkRecurrenceDay(mark.recurrenceDay);
     setEditingMarkIndex(index);
   };
 
@@ -235,6 +245,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
         categoryIndex: newMarkCategoryIndex,
         balanceIndex: newMarkBalanceIndex,
         dueDate: newMarkDueDate || undefined,
+        recurrence: newMarkRecurrence,
+        recurrenceDay: newMarkRecurrenceDay,
       };
       setMarks(updatedMarks);
       setNewMarkName('');
@@ -243,6 +255,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
       setNewMarkCategoryIndex(undefined);
       setNewMarkBalanceIndex(undefined);
       setNewMarkDueDate('');
+      setNewMarkRecurrence('one-time');
+      setNewMarkRecurrenceDay(undefined);
       setEditingMarkIndex(null);
     }
   };
@@ -255,6 +269,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
     setNewMarkCategoryIndex(undefined);
     setNewMarkBalanceIndex(undefined);
     setNewMarkDueDate('');
+    setNewMarkRecurrence('one-time');
+    setNewMarkRecurrenceDay(undefined);
     setEditingMarkIndex(null);
   };
 
@@ -269,6 +285,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
         categoryId: mark.categoryIndex !== undefined ? `idx:${mark.categoryIndex}` : undefined,
         balanceId: mark.balanceIndex !== undefined ? `idx:${mark.balanceIndex}` : undefined,
         dueDate: mark.dueDate,
+        recurrence: mark.recurrence,
+        recurrenceDay: mark.recurrenceDay,
       }));
 
       createTemplate(templateName.trim(), categories, convertedMarks, balances);
@@ -306,6 +324,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
         categoryIndex,
         balanceIndex,
         dueDate: mark.dueDate,
+        recurrence: mark.recurrence,
+        recurrenceDay: mark.recurrenceDay,
       };
     });
 
@@ -324,6 +344,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
         categoryId: mark.categoryIndex !== undefined ? `idx:${mark.categoryIndex}` : undefined,
         balanceId: mark.balanceIndex !== undefined ? `idx:${mark.balanceIndex}` : undefined,
         dueDate: mark.dueDate,
+        recurrence: mark.recurrence,
+        recurrenceDay: mark.recurrenceDay,
       }));
 
       updateTemplate(editingTemplateId, templateName.trim(), categories, convertedMarks, balances);
@@ -361,6 +383,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
     setNewMarkCategoryIndex(undefined);
     setNewMarkBalanceIndex(undefined);
     setNewMarkDueDate('');
+    setNewMarkRecurrence('one-time');
+    setNewMarkRecurrenceDay(undefined);
     setEditingTemplateId(null);
     setEditingCategoryIndex(null);
     setEditingBalanceIndex(null);
@@ -598,6 +622,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                 {marks.map((mark, index) => {
                   const linkedCat = mark.categoryIndex !== undefined ? categories[mark.categoryIndex] : null;
                   const linkedBal = mark.balanceIndex !== undefined ? balances[mark.balanceIndex] : null;
+                  const recurrenceLabel = mark.recurrence === 'weekly' ? t('weekly') : mark.recurrence === 'monthly' ? t('monthly') : null;
                   return (
                     <div key={index} className={`mark-template-item ${mark.type} ${editingMarkIndex === index ? 'editing' : ''}`}>
                       <span className="mark-type-indicator">{mark.type === 'incoming' ? '+' : '-'}</span>
@@ -606,6 +631,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                         {linkedCat && <span className="mark-link-badge"> → {linkedCat.name}</span>}
                         {linkedBal && <span className="mark-link-badge balance"> 💰{linkedBal.name}</span>}
                         {mark.dueDate && <span className="mark-link-badge due-date"> 📅 {mark.dueDate}</span>}
+                        {recurrenceLabel && <span className="mark-link-badge recurrence"> 🔄 {recurrenceLabel}</span>}
                       </span>
                       <div className="item-actions">
                         <button className="btn-icon btn-edit" onClick={() => handleEditMark(index)} title={t('edit')}>✏️</button>
@@ -689,6 +715,69 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                       </button>
                     )}
                   </div>
+                </div>
+                {newMarkDueDate && (
+                  <div className="add-mark-row recurrence-row">
+                    <div className="recurrence-input">
+                      <label>{t('recurrence')}</label>
+                      <select
+                        className="input"
+                        value={newMarkRecurrence}
+                        onChange={(e) => {
+                          const value = e.target.value as RecurrenceType;
+                          setNewMarkRecurrence(value);
+                          // Auto-set recurrence day from selected date
+                          if (newMarkDueDate) {
+                            const date = new Date(newMarkDueDate + 'T00:00:00');
+                            if (value === 'monthly') {
+                              setNewMarkRecurrenceDay(date.getDate());
+                            } else if (value === 'weekly') {
+                              setNewMarkRecurrenceDay(date.getDay());
+                            } else {
+                              setNewMarkRecurrenceDay(undefined);
+                            }
+                          }
+                        }}
+                      >
+                        <option value="one-time">{t('oneTime')}</option>
+                        <option value="weekly">{t('weekly')}</option>
+                        <option value="monthly">{t('monthly')}</option>
+                      </select>
+                    </div>
+                    {newMarkRecurrence === 'monthly' && (
+                      <div className="recurrence-day-input">
+                        <label>{t('dayOfMonth')}</label>
+                        <input
+                          type="number"
+                          className="input input-small"
+                          min="1"
+                          max="31"
+                          value={newMarkRecurrenceDay || ''}
+                          onChange={(e) => setNewMarkRecurrenceDay(parseInt(e.target.value, 10) || undefined)}
+                        />
+                      </div>
+                    )}
+                    {newMarkRecurrence === 'weekly' && (
+                      <div className="recurrence-day-input">
+                        <label>{t('dayOfWeek')}</label>
+                        <select
+                          className="input"
+                          value={newMarkRecurrenceDay !== undefined ? newMarkRecurrenceDay.toString() : ''}
+                          onChange={(e) => setNewMarkRecurrenceDay(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                        >
+                          <option value="0">{t('sun')}</option>
+                          <option value="1">{t('mon')}</option>
+                          <option value="2">{t('tue')}</option>
+                          <option value="3">{t('wed')}</option>
+                          <option value="4">{t('thu')}</option>
+                          <option value="5">{t('fri')}</option>
+                          <option value="6">{t('sat')}</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="add-mark-row">
                   {editingMarkIndex !== null ? (
                     <>
                       <button className="btn btn-primary" onClick={handleSaveMark}>{t('save')}</button>
@@ -846,6 +935,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                 {marks.map((mark, index) => {
                   const linkedCat = mark.categoryIndex !== undefined ? categories[mark.categoryIndex] : null;
                   const linkedBal = mark.balanceIndex !== undefined ? balances[mark.balanceIndex] : null;
+                  const recurrenceLabel = mark.recurrence === 'weekly' ? t('weekly') : mark.recurrence === 'monthly' ? t('monthly') : null;
                   return (
                     <div key={index} className={`mark-template-item ${mark.type} ${editingMarkIndex === index ? 'editing' : ''}`}>
                       <span className="mark-type-indicator">{mark.type === 'incoming' ? '+' : '-'}</span>
@@ -854,6 +944,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                         {linkedCat && <span className="mark-link-badge"> → {linkedCat.name}</span>}
                         {linkedBal && <span className="mark-link-badge balance"> 💰{linkedBal.name}</span>}
                         {mark.dueDate && <span className="mark-link-badge due-date"> 📅 {mark.dueDate}</span>}
+                        {recurrenceLabel && <span className="mark-link-badge recurrence"> 🔄 {recurrenceLabel}</span>}
                       </span>
                       <div className="item-actions">
                         <button className="btn-icon btn-edit" onClick={() => handleEditMark(index)} title={t('edit')}>✏️</button>
@@ -937,6 +1028,69 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ onClose }) => 
                       </button>
                     )}
                   </div>
+                </div>
+                {newMarkDueDate && (
+                  <div className="add-mark-row recurrence-row">
+                    <div className="recurrence-input">
+                      <label>{t('recurrence')}</label>
+                      <select
+                        className="input"
+                        value={newMarkRecurrence}
+                        onChange={(e) => {
+                          const value = e.target.value as RecurrenceType;
+                          setNewMarkRecurrence(value);
+                          // Auto-set recurrence day from selected date
+                          if (newMarkDueDate) {
+                            const date = new Date(newMarkDueDate + 'T00:00:00');
+                            if (value === 'monthly') {
+                              setNewMarkRecurrenceDay(date.getDate());
+                            } else if (value === 'weekly') {
+                              setNewMarkRecurrenceDay(date.getDay());
+                            } else {
+                              setNewMarkRecurrenceDay(undefined);
+                            }
+                          }
+                        }}
+                      >
+                        <option value="one-time">{t('oneTime')}</option>
+                        <option value="weekly">{t('weekly')}</option>
+                        <option value="monthly">{t('monthly')}</option>
+                      </select>
+                    </div>
+                    {newMarkRecurrence === 'monthly' && (
+                      <div className="recurrence-day-input">
+                        <label>{t('dayOfMonth')}</label>
+                        <input
+                          type="number"
+                          className="input input-small"
+                          min="1"
+                          max="31"
+                          value={newMarkRecurrenceDay || ''}
+                          onChange={(e) => setNewMarkRecurrenceDay(parseInt(e.target.value, 10) || undefined)}
+                        />
+                      </div>
+                    )}
+                    {newMarkRecurrence === 'weekly' && (
+                      <div className="recurrence-day-input">
+                        <label>{t('dayOfWeek')}</label>
+                        <select
+                          className="input"
+                          value={newMarkRecurrenceDay !== undefined ? newMarkRecurrenceDay.toString() : ''}
+                          onChange={(e) => setNewMarkRecurrenceDay(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                        >
+                          <option value="0">{t('sun')}</option>
+                          <option value="1">{t('mon')}</option>
+                          <option value="2">{t('tue')}</option>
+                          <option value="3">{t('wed')}</option>
+                          <option value="4">{t('thu')}</option>
+                          <option value="5">{t('fri')}</option>
+                          <option value="6">{t('sat')}</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="add-mark-row">
                   {editingMarkIndex !== null ? (
                     <>
                       <button className="btn btn-primary" onClick={handleSaveMark}>{t('save')}</button>

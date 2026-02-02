@@ -15,6 +15,8 @@ export interface Balance {
   currency: Currency;
 }
 
+export type RecurrenceType = 'one-time' | 'weekly' | 'monthly';
+
 export interface Mark {
   id: string;
   name: string;
@@ -26,6 +28,8 @@ export interface Mark {
   categoryId?: string;
   balanceId?: string; // Link to a specific balance
   dueDate?: string; // ISO date string (YYYY-MM-DD) for calendar display
+  recurrence?: RecurrenceType; // How the due date recurs when creating from template
+  recurrenceDay?: number; // Day of month (1-31) for monthly, or day of week (0-6, Sun-Sat) for weekly
 }
 
 export interface HistoryEntry {

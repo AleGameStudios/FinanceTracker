@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // Increment this version to force service worker update on all clients
-const APP_VERSION = '1.1.0'
+const APP_VERSION = '1.2.0'
 
 // https://vite.dev/config/
 export default defineConfig({

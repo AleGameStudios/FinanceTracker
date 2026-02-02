@@ -1,12 +1,99 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import type { AppData, Sheet, Template, Category, HistoryEntry, Mark, Currency, Balance, DollarBlueRateData } from '../types';
+import type { AppData, Sheet, Template, Category, HistoryEntry, Mark, Currency, Balance, DollarBlueRateData, RecurrenceType } from '../types';
 import { loadData, saveData, clearData, defaultData, saveBackup, loadBackup, clearBackup, savePendingChanges, loadPendingChanges, clearPendingChanges } from '../utils/storage';
 import { getRandomColor } from '../utils/colors';
 import { saveUserData, loadUserData, subscribeToUserData, forceSaveUserData } from '../firebase';
 import type { AppDataWithMeta } from '../firebase/database';
 import type { Unsubscribe } from 'firebase/firestore';
+
+// Helper function to expand recurring marks based on sheet creation date
+function expandRecurringMarks(
+  templateMarks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[],
+  sheetCreatedAt: number,
+  categoryIdMap: Map<number, string>,
+  balanceIdMap: Map<number, string>
+): Mark[] {
+  const result: Mark[] = [];
+  const sheetDate = new Date(sheetCreatedAt);
+  const sheetYear = sheetDate.getFullYear();
+  const sheetMonth = sheetDate.getMonth();
+
+  // Get the number of days in the sheet's month
+  const daysInMonth = new Date(sheetYear, sheetMonth + 1, 0).getDate();
+
+  for (const mark of templateMarks) {
+    // Map categoryId if it's an index reference
+    let mappedCategoryId = mark.categoryId;
+    if (mark.categoryId?.startsWith('idx:')) {
+      const index = parseInt(mark.categoryId.slice(4), 10);
+      mappedCategoryId = categoryIdMap.get(index);
+    }
+
+    // Map balanceId if it's an index reference
+    let mappedBalanceId = mark.balanceId;
+    if (mark.balanceId?.startsWith('idx:')) {
+      const index = parseInt(mark.balanceId.slice(4), 10);
+      mappedBalanceId = balanceIdMap.get(index);
+    }
+
+    const recurrence = mark.recurrence || 'one-time';
+    const recurrenceDay = mark.recurrenceDay;
+
+    if (recurrence === 'one-time' || !mark.dueDate) {
+      // One-time: use the date as-is (or no due date)
+      result.push({
+        ...mark,
+        id: uuidv4(),
+        completed: false,
+        categoryId: mappedCategoryId,
+        balanceId: mappedBalanceId,
+      });
+    } else if (recurrence === 'monthly') {
+      // Monthly: create one mark for that day of the month
+      const dayOfMonth = recurrenceDay || new Date(mark.dueDate + 'T00:00:00').getDate();
+      // Clamp to valid day in month (e.g., day 31 in a 30-day month becomes day 30)
+      const actualDay = Math.min(dayOfMonth, daysInMonth);
+      const newDate = new Date(sheetYear, sheetMonth, actualDay);
+      const dateStr = newDate.toISOString().split('T')[0];
+
+      result.push({
+        ...mark,
+        id: uuidv4(),
+        completed: false,
+        categoryId: mappedCategoryId,
+        balanceId: mappedBalanceId,
+        dueDate: dateStr,
+        recurrence: undefined, // Clear recurrence on expanded marks
+        recurrenceDay: undefined,
+      });
+    } else if (recurrence === 'weekly') {
+      // Weekly: create marks for each occurrence of that weekday in the month
+      const dayOfWeek = recurrenceDay !== undefined ? recurrenceDay : new Date(mark.dueDate + 'T00:00:00').getDay();
+
+      // Find all occurrences of this weekday in the month
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(sheetYear, sheetMonth, day);
+        if (date.getDay() === dayOfWeek) {
+          const dateStr = date.toISOString().split('T')[0];
+          result.push({
+            ...mark,
+            id: uuidv4(),
+            completed: false,
+            categoryId: mappedCategoryId,
+            balanceId: mappedBalanceId,
+            dueDate: dateStr,
+            recurrence: undefined, // Clear recurrence on expanded marks
+            recurrenceDay: undefined,
+          });
+        }
+      }
+    }
+  }
+
+  return result;
+}
 
 type Action =
   | { type: 'LOAD_DATA'; payload: AppData }
@@ -102,35 +189,19 @@ const appReducer = (state: AppData, action: Action): AppData => {
         };
       });
 
-      // Create marks with mapped category/balance IDs
-      const newMarks: Mark[] = (action.payload.marks || []).map(mark => {
-        // Map categoryId if it's an index reference (starts with 'idx:')
-        let mappedCategoryId = mark.categoryId;
-        if (mark.categoryId?.startsWith('idx:')) {
-          const index = parseInt(mark.categoryId.slice(4), 10);
-          mappedCategoryId = categoryIdMap.get(index);
-        }
-
-        // Map balanceId if it's an index reference (starts with 'idx:')
-        let mappedBalanceId = mark.balanceId;
-        if (mark.balanceId?.startsWith('idx:')) {
-          const index = parseInt(mark.balanceId.slice(4), 10);
-          mappedBalanceId = balanceIdMap.get(index);
-        }
-
-        return {
-          ...mark,
-          id: uuidv4(),
-          completed: false,
-          categoryId: mappedCategoryId,
-          balanceId: mappedBalanceId,
-        };
-      });
+      // Create marks with mapped category/balance IDs, expanding recurring marks
+      const sheetCreatedAt = Date.now();
+      const newMarks: Mark[] = expandRecurringMarks(
+        action.payload.marks || [],
+        sheetCreatedAt,
+        categoryIdMap,
+        balanceIdMap
+      );
 
       const newSheet: Sheet = {
         id: newSheetId,
         name: action.payload.name,
-        createdAt: Date.now(),
+        createdAt: sheetCreatedAt,
         categories: newCategories,
         marks: newMarks,
         balances: newBalances,
