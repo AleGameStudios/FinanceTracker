@@ -1,6 +1,8 @@
 import type { AppData } from '../types';
 
 const STORAGE_KEY = 'finance-tracker-data';
+const BACKUP_KEY = 'finance-tracker-backup';
+const PENDING_CHANGES_KEY = 'finance-tracker-pending';
 
 export const defaultData: AppData = {
   sheets: [],
@@ -88,4 +90,82 @@ export const importData = (file: File): Promise<AppData> => {
     reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsText(file);
   });
+};
+
+// Backup functions for failsafe saving
+export interface BackupData {
+  data: AppData;
+  timestamp: number;
+  savedToCloud: boolean;
+}
+
+export const saveBackup = (data: AppData, savedToCloud: boolean = false): void => {
+  try {
+    const backup: BackupData = {
+      data,
+      timestamp: Date.now(),
+      savedToCloud,
+    };
+    localStorage.setItem(BACKUP_KEY, JSON.stringify(backup));
+  } catch (error) {
+    console.error('Failed to save backup to localStorage:', error);
+  }
+};
+
+export const loadBackup = (): BackupData | null => {
+  try {
+    const stored = localStorage.getItem(BACKUP_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error('Failed to load backup from localStorage:', error);
+  }
+  return null;
+};
+
+export const clearBackup = (): void => {
+  try {
+    localStorage.removeItem(BACKUP_KEY);
+  } catch (error) {
+    console.error('Failed to clear backup from localStorage:', error);
+  }
+};
+
+// Pending changes queue for debounced saving
+export interface PendingChange {
+  data: AppData;
+  timestamp: number;
+}
+
+export const savePendingChanges = (data: AppData): void => {
+  try {
+    const pending: PendingChange = {
+      data,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(PENDING_CHANGES_KEY, JSON.stringify(pending));
+  } catch (error) {
+    console.error('Failed to save pending changes:', error);
+  }
+};
+
+export const loadPendingChanges = (): PendingChange | null => {
+  try {
+    const stored = localStorage.getItem(PENDING_CHANGES_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error('Failed to load pending changes:', error);
+  }
+  return null;
+};
+
+export const clearPendingChanges = (): void => {
+  try {
+    localStorage.removeItem(PENDING_CHANGES_KEY);
+  } catch (error) {
+    console.error('Failed to clear pending changes:', error);
+  }
 };

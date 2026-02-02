@@ -2,7 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect, useCallback, u
 import type { ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { AppData, Sheet, Template, Category, HistoryEntry, Mark, Currency, Balance, DollarBlueRateData } from '../types';
-import { loadData, saveData, clearData, defaultData } from '../utils/storage';
+import { loadData, saveData, clearData, defaultData, saveBackup, loadBackup, clearBackup, savePendingChanges, loadPendingChanges, clearPendingChanges } from '../utils/storage';
 import { getRandomColor } from '../utils/colors';
 import { saveUserData, loadUserData, subscribeToUserData, forceSaveUserData } from '../firebase';
 import type { AppDataWithMeta } from '../firebase/database';
@@ -587,6 +587,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
   const lastSyncedState = useRef<string>('');
   const lastSyncedTimestamp = useRef<number>(0);
   const isSavingRef = useRef(false);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasUnsavedChanges = useRef(false);
+  const pendingSaveData = useRef<AppData | null>(null);
 
   // Load initial data
   useEffect(() => {
@@ -597,12 +600,57 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
         // Load from Firebase for authenticated users
         try {
           const firebaseData = await loadUserData(userId);
+
+          // Check for unsaved backup data that wasn't synced to cloud
+          const backup = loadBackup();
+          const pendingChanges = loadPendingChanges();
+
           if (firebaseData) {
             // Extract timestamp and app data
             const { updatedAt, ...appData } = firebaseData as AppDataWithMeta;
-            dispatch({ type: 'LOAD_DATA', payload: appData as AppData });
-            lastSyncedState.current = JSON.stringify(appData);
-            lastSyncedTimestamp.current = updatedAt || Date.now();
+            const cloudTimestamp = updatedAt || 0;
+
+            // Check if backup has newer data that wasn't saved to cloud
+            if (backup && !backup.savedToCloud && backup.timestamp > cloudTimestamp) {
+              console.log('Found unsaved backup data newer than cloud, using backup');
+              dispatch({ type: 'LOAD_DATA', payload: backup.data });
+              lastSyncedState.current = '';  // Force re-sync
+              lastSyncedTimestamp.current = backup.timestamp;
+              // Try to save backup to cloud immediately
+              try {
+                const result = await forceSaveUserData(userId, backup.data);
+                if (result) {
+                  saveBackup(backup.data, true);  // Mark as saved
+                  lastSyncedState.current = JSON.stringify(backup.data);
+                  lastSyncedTimestamp.current = result;
+                }
+              } catch (e) {
+                console.error('Failed to sync backup to cloud:', e);
+              }
+            } else if (pendingChanges && pendingChanges.timestamp > cloudTimestamp) {
+              console.log('Found pending changes newer than cloud, using pending data');
+              dispatch({ type: 'LOAD_DATA', payload: pendingChanges.data });
+              lastSyncedState.current = '';  // Force re-sync
+              lastSyncedTimestamp.current = pendingChanges.timestamp;
+              // Try to save pending changes to cloud
+              try {
+                const result = await forceSaveUserData(userId, pendingChanges.data);
+                if (result) {
+                  clearPendingChanges();
+                  lastSyncedState.current = JSON.stringify(pendingChanges.data);
+                  lastSyncedTimestamp.current = result;
+                }
+              } catch (e) {
+                console.error('Failed to sync pending changes to cloud:', e);
+              }
+            } else {
+              dispatch({ type: 'LOAD_DATA', payload: appData as AppData });
+              lastSyncedState.current = JSON.stringify(appData);
+              lastSyncedTimestamp.current = cloudTimestamp || Date.now();
+              // Clear backup if cloud data is newer
+              clearBackup();
+              clearPendingChanges();
+            }
 
             // Clear local storage since we're using cloud data
             clearData();
@@ -617,14 +665,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
               lastSyncedTimestamp.current = timestamp;
               // Clear local storage after migration
               clearData();
+            } else if (backup && !backup.savedToCloud) {
+              // Use backup for new users with unsaved data
+              dispatch({ type: 'LOAD_DATA', payload: backup.data });
+              const timestamp = await forceSaveUserData(userId, backup.data);
+              lastSyncedState.current = JSON.stringify(backup.data);
+              lastSyncedTimestamp.current = timestamp;
+              saveBackup(backup.data, true);
             }
           }
         } catch (error) {
           console.error('Failed to load data from Firebase:', error);
-          // On error, DO NOT fall back to localStorage for authenticated users
-          // This prevents stale local data from overwriting cloud data
-          // Just use default data and let user retry
-          console.warn('Using default data due to Firebase error. Please refresh to retry.');
+          // Check for backup data on Firebase error
+          const backup = loadBackup();
+          if (backup) {
+            console.log('Using backup data due to Firebase error');
+            dispatch({ type: 'LOAD_DATA', payload: backup.data });
+          } else {
+            console.warn('Using default data due to Firebase error. Please refresh to retry.');
+          }
         }
       } else {
         // Load from localStorage for non-authenticated users
@@ -649,13 +708,30 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
       return;
     }
 
+    // Track when subscription first fires to prevent race with initial load
+    let subscriptionReady = false;
+    const subscriptionReadyTimeout = setTimeout(() => {
+      subscriptionReady = true;
+    }, 1000); // Wait 1 second after subscription starts before accepting updates
+
     unsubscribeRef.current = subscribeToUserData(userId, (data, timestamp) => {
-      // Skip if this is during initial load or if we're currently saving
-      if (isInitialLoad.current || isSavingRef.current) return;
+      // Skip if this is during initial load, subscription isn't ready, or we're saving
+      if (isInitialLoad.current || !subscriptionReady) {
+        console.log('Skipping subscription update: initial load or not ready');
+        return;
+      }
+
+      // Skip if we're currently saving or have pending saves
+      if (isSavingRef.current || pendingSaveData.current) {
+        console.log('Skipping subscription update: save in progress');
+        return;
+      }
 
       if (data && timestamp) {
-        // Only update if cloud timestamp is newer than our last synced timestamp
-        if (timestamp > lastSyncedTimestamp.current) {
+        // Only update if cloud timestamp is significantly newer (>500ms) than our last synced timestamp
+        // This prevents race conditions where our own save triggers an immediate update
+        const timeDiff = timestamp - lastSyncedTimestamp.current;
+        if (timeDiff > 500) {
           const { updatedAt, ...appData } = data;
           const dataString = JSON.stringify(appData);
 
@@ -663,17 +739,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
           if (dataString !== lastSyncedState.current) {
             console.log('Received newer data from cloud', {
               cloudTimestamp: timestamp,
-              localTimestamp: lastSyncedTimestamp.current
+              localTimestamp: lastSyncedTimestamp.current,
+              timeDiff
             });
             dispatch({ type: 'LOAD_DATA', payload: appData as AppData });
             lastSyncedState.current = dataString;
             lastSyncedTimestamp.current = timestamp;
+            hasUnsavedChanges.current = false;
+            // Clear local backups since we just received fresh cloud data
+            clearBackup();
+            clearPendingChanges();
           }
         }
       }
     });
 
     return () => {
+      clearTimeout(subscriptionReadyTimeout);
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
         unsubscribeRef.current = null;
@@ -681,45 +763,128 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
     };
   }, [userId]);
 
-  // Save data on state changes
-  const saveDataToStorage = useCallback(async (data: AppData) => {
-    if (isInitialLoad.current) return;
+  // Perform the actual save to Firebase with verification
+  const performSave = useCallback(async (data: AppData): Promise<boolean> => {
+    if (!userId) {
+      saveData(data);
+      return true;
+    }
 
     const dataString = JSON.stringify(data);
-    if (dataString === lastSyncedState.current) return;
+    if (dataString === lastSyncedState.current) return true;
 
-    if (userId) {
-      setIsSyncing(true);
-      isSavingRef.current = true;
+    setIsSyncing(true);
+    isSavingRef.current = true;
 
-      try {
-        // Use a new timestamp for this save
-        const saveTimestamp = Date.now();
-        const result = await saveUserData(userId, data, saveTimestamp);
+    try {
+      // Save backup first before attempting cloud save
+      saveBackup(data, false);
+      savePendingChanges(data);
 
-        if (result !== null) {
-          // Save succeeded
-          lastSyncedState.current = dataString;
-          lastSyncedTimestamp.current = result;
-        } else {
-          // Save was skipped because cloud has newer data
-          // The subscription will handle updating to the newer cloud data
-          console.log('Local save skipped - cloud has newer data');
-        }
-      } catch (error) {
-        console.error('Failed to save to Firebase:', error);
-      } finally {
-        setIsSyncing(false);
-        isSavingRef.current = false;
+      // Use a new timestamp for this save
+      const saveTimestamp = Date.now();
+      const result = await saveUserData(userId, data, saveTimestamp);
+
+      if (result !== null) {
+        // Save succeeded - verify by comparing timestamps
+        lastSyncedState.current = dataString;
+        lastSyncedTimestamp.current = result;
+        hasUnsavedChanges.current = false;
+
+        // Mark backup as saved to cloud
+        saveBackup(data, true);
+        clearPendingChanges();
+
+        console.log('Save successful, timestamp:', result);
+        return true;
+      } else {
+        // Save was skipped because cloud has newer data
+        console.log('Local save skipped - cloud has newer data');
+        // Keep backup as unsaved since we didn't actually save
+        return false;
       }
-    } else {
-      saveData(data);
+    } catch (error) {
+      console.error('Failed to save to Firebase:', error);
+      // Keep backup and pending changes for recovery
+      hasUnsavedChanges.current = true;
+      return false;
+    } finally {
+      setIsSyncing(false);
+      isSavingRef.current = false;
     }
   }, [userId]);
 
+  // Debounced save function
+  const debouncedSave = useCallback((data: AppData) => {
+    // Always save backup immediately for safety
+    if (userId) {
+      saveBackup(data, false);
+      savePendingChanges(data);
+      hasUnsavedChanges.current = true;
+    }
+
+    pendingSaveData.current = data;
+
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Set new timeout for debounced save (300ms delay)
+    saveTimeoutRef.current = setTimeout(() => {
+      if (pendingSaveData.current) {
+        performSave(pendingSaveData.current);
+        pendingSaveData.current = null;
+      }
+    }, 300);
+  }, [userId, performSave]);
+
+  // Save data on state changes with debouncing
   useEffect(() => {
-    saveDataToStorage(state);
-  }, [state, saveDataToStorage]);
+    if (isInitialLoad.current) return;
+
+    const dataString = JSON.stringify(state);
+    if (dataString === lastSyncedState.current) return;
+
+    if (userId) {
+      debouncedSave(state);
+    } else {
+      saveData(state);
+    }
+  }, [state, userId, debouncedSave]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Beforeunload protection - warn user if there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Check if there are unsaved changes
+      if (hasUnsavedChanges.current || pendingSaveData.current) {
+        // Attempt to force save pending data
+        if (pendingSaveData.current && userId) {
+          // Save backup synchronously
+          saveBackup(pendingSaveData.current, false);
+          savePendingChanges(pendingSaveData.current);
+        }
+
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [userId]);
 
   const createSheet = (name: string, categories: Omit<Category, 'id'>[], marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[] = [], balances: Omit<Balance, 'id'>[] = []) => {
     dispatch({ type: 'CREATE_SHEET', payload: { name, categories, marks, balances } });
