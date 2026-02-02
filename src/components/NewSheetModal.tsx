@@ -43,7 +43,7 @@ export const NewSheetModal: React.FC<NewSheetModalProps> = ({ onClose }) => {
     if (selectedTemplateId && sheetName.trim()) {
       const template = state.templates.find(t => t.id === selectedTemplateId);
       if (template) {
-        createSheet(sheetName.trim(), template.categories, template.marks || []);
+        createSheet(sheetName.trim(), template.categories, template.marks || [], template.balances || []);
         onClose();
       }
     }

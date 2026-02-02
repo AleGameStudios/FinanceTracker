@@ -912,6 +912,125 @@ select.input {
   min-width: 100px;
 }
 
+/* Template Balances */
+.balances-template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.balance-template-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--card-background);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--primary-color);
+}
+
+.add-balance-inline {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.add-balance-inline .input {
+  flex: 1;
+  min-width: 100px;
+}
+
+/* Template Mark Form */
+.add-mark-template-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.add-mark-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.add-mark-row .input {
+  flex: 1;
+  min-width: 100px;
+}
+
+.due-date-input {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.due-date-input label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.due-date-input .input {
+  min-width: 140px;
+}
+
+/* Template Mark Details */
+.mark-template-details {
+  flex: 1;
+}
+
+.mark-link-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 0.125rem 0.375rem;
+  margin-left: 0.25rem;
+  background-color: var(--background-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.mark-link-badge.balance {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.mark-link-badge.due-date {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+/* Template List Balances */
+.template-balances {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+}
+
+.balance-tag {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+}
+
+/* Template Mark Link Indicators */
+.mark-link-indicator {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-left: 0.25rem;
+}
+
+.mark-due-indicator {
+  font-size: 0.7rem;
+  margin-left: 0.25rem;
+}
+
 .categories-list {
   display: flex;
   flex-direction: column;

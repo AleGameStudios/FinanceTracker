@@ -10,12 +10,12 @@ import type { Unsubscribe } from 'firebase/firestore';
 
 type Action =
   | { type: 'LOAD_DATA'; payload: AppData }
-  | { type: 'CREATE_SHEET'; payload: { name: string; categories: Omit<Category, 'id'>[]; marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[] } }
+  | { type: 'CREATE_SHEET'; payload: { name: string; categories: Omit<Category, 'id'>[]; marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[]; balances: Omit<Balance, 'id'>[] } }
   | { type: 'SET_ACTIVE_SHEET'; payload: string }
   | { type: 'UPDATE_CATEGORY_AMOUNT'; payload: { categoryId: string; amount: number; note?: string } }
   | { type: 'ADD_CATEGORY'; payload: { name: string; amount: number; color: string; currency: Currency } }
   | { type: 'REMOVE_CATEGORY'; payload: { categoryId: string; note?: string } }
-  | { type: 'CREATE_TEMPLATE'; payload: { name: string; categories: Omit<Category, 'id'>[]; marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[] } }
+  | { type: 'CREATE_TEMPLATE'; payload: { name: string; categories: Omit<Category, 'id'>[]; marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[]; balances: Omit<Balance, 'id'>[] } }
   | { type: 'DELETE_TEMPLATE'; payload: string }
   | { type: 'DELETE_SHEET'; payload: string }
   | { type: 'IMPORT_DATA'; payload: AppData }
@@ -37,12 +37,12 @@ type Action =
 interface AppContextType {
   state: AppData;
   dispatch: React.Dispatch<Action>;
-  createSheet: (name: string, categories: Omit<Category, 'id'>[], marks?: Omit<Mark, 'id' | 'completed' | 'completedAt'>[]) => void;
+  createSheet: (name: string, categories: Omit<Category, 'id'>[], marks?: Omit<Mark, 'id' | 'completed' | 'completedAt'>[], balances?: Omit<Balance, 'id'>[]) => void;
   setActiveSheet: (sheetId: string) => void;
   updateCategoryAmount: (categoryId: string, amount: number, note?: string) => void;
   addCategory: (name: string, amount: number, color?: string, currency?: Currency) => void;
   removeCategory: (categoryId: string, note?: string) => void;
-  createTemplate: (name: string, categories: Omit<Category, 'id'>[], marks?: Omit<Mark, 'id' | 'completed' | 'completedAt'>[]) => void;
+  createTemplate: (name: string, categories: Omit<Category, 'id'>[], marks?: Omit<Mark, 'id' | 'completed' | 'completedAt'>[], balances?: Omit<Balance, 'id'>[]) => void;
   createTemplateFromSheet: (name: string, sheetId: string) => void;
   deleteTemplate: (templateId: string) => void;
   deleteSheet: (sheetId: string) => void;
@@ -74,17 +74,54 @@ const appReducer = (state: AppData, action: Action): AppData => {
 
     case 'CREATE_SHEET': {
       const newSheetId = uuidv4();
-      const newCategories: Category[] = action.payload.categories.map(cat => ({
-        ...cat,
-        id: uuidv4(),
-        currency: cat.currency || 'USD',
-      }));
 
-      const newMarks: Mark[] = (action.payload.marks || []).map(mark => ({
-        ...mark,
-        id: uuidv4(),
-        completed: false,
-      }));
+      // Create category ID mapping (template index -> new ID)
+      const categoryIdMap = new Map<number, string>();
+      const newCategories: Category[] = action.payload.categories.map((cat, index) => {
+        const newId = uuidv4();
+        categoryIdMap.set(index, newId);
+        return {
+          ...cat,
+          id: newId,
+          currency: cat.currency || 'USD',
+        };
+      });
+
+      // Create balance ID mapping (template index -> new ID)
+      const balanceIdMap = new Map<number, string>();
+      const newBalances: Balance[] = (action.payload.balances || []).map((bal, index) => {
+        const newId = uuidv4();
+        balanceIdMap.set(index, newId);
+        return {
+          ...bal,
+          id: newId,
+        };
+      });
+
+      // Create marks with mapped category/balance IDs
+      const newMarks: Mark[] = (action.payload.marks || []).map(mark => {
+        // Map categoryId if it's an index reference (starts with 'idx:')
+        let mappedCategoryId = mark.categoryId;
+        if (mark.categoryId?.startsWith('idx:')) {
+          const index = parseInt(mark.categoryId.slice(4), 10);
+          mappedCategoryId = categoryIdMap.get(index);
+        }
+
+        // Map balanceId if it's an index reference (starts with 'idx:')
+        let mappedBalanceId = mark.balanceId;
+        if (mark.balanceId?.startsWith('idx:')) {
+          const index = parseInt(mark.balanceId.slice(4), 10);
+          mappedBalanceId = balanceIdMap.get(index);
+        }
+
+        return {
+          ...mark,
+          id: uuidv4(),
+          completed: false,
+          categoryId: mappedCategoryId,
+          balanceId: mappedBalanceId,
+        };
+      });
 
       const newSheet: Sheet = {
         id: newSheetId,
@@ -92,7 +129,7 @@ const appReducer = (state: AppData, action: Action): AppData => {
         createdAt: Date.now(),
         categories: newCategories,
         marks: newMarks,
-        balances: [],
+        balances: newBalances,
         isActive: true,
       };
 
@@ -223,7 +260,7 @@ const appReducer = (state: AppData, action: Action): AppData => {
         name: action.payload.name,
         categories: action.payload.categories,
         marks: action.payload.marks || [],
-        balances: [],
+        balances: action.payload.balances || [],
         createdAt: Date.now(),
       };
 
@@ -684,8 +721,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
     saveDataToStorage(state);
   }, [state, saveDataToStorage]);
 
-  const createSheet = (name: string, categories: Omit<Category, 'id'>[], marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[] = []) => {
-    dispatch({ type: 'CREATE_SHEET', payload: { name, categories, marks } });
+  const createSheet = (name: string, categories: Omit<Category, 'id'>[], marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[] = [], balances: Omit<Balance, 'id'>[] = []) => {
+    dispatch({ type: 'CREATE_SHEET', payload: { name, categories, marks, balances } });
   };
 
   const setActiveSheet = (sheetId: string) => {
@@ -704,16 +741,38 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
     dispatch({ type: 'REMOVE_CATEGORY', payload: { categoryId, note } });
   };
 
-  const createTemplate = (name: string, categories: Omit<Category, 'id'>[], marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[] = []) => {
-    dispatch({ type: 'CREATE_TEMPLATE', payload: { name, categories, marks } });
+  const createTemplate = (name: string, categories: Omit<Category, 'id'>[], marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[] = [], balances: Omit<Balance, 'id'>[] = []) => {
+    dispatch({ type: 'CREATE_TEMPLATE', payload: { name, categories, marks, balances } });
   };
 
   const createTemplateFromSheet = (name: string, sheetId: string) => {
     const sheet = state.sheets.find(s => s.id === sheetId);
     if (sheet) {
-      const categories = sheet.categories.map(({ name, amount, color, currency }) => ({ name, amount, color, currency: currency || 'USD' as const }));
-      const marks = (sheet.marks || []).map(({ name, amount, type, currency }) => ({ name, amount, type, currency: currency || 'USD' as const }));
-      dispatch({ type: 'CREATE_TEMPLATE', payload: { name, categories, marks } });
+      // Create mappings from old IDs to template indices
+      const categoryIdToIndex = new Map<string, number>();
+      const categories = sheet.categories.map(({ name, amount, color, currency }, index) => {
+        categoryIdToIndex.set(sheet.categories[index].id, index);
+        return { name, amount, color, currency: currency || 'USD' as const };
+      });
+
+      const balanceIdToIndex = new Map<string, number>();
+      const balances = (sheet.balances || []).map(({ name, amount, currency }, index) => {
+        balanceIdToIndex.set(sheet.balances[index].id, index);
+        return { name, amount, currency };
+      });
+
+      // Map marks with index references for category/balance links
+      const marks = (sheet.marks || []).map(({ name, amount, type, currency, categoryId, balanceId, dueDate }) => ({
+        name,
+        amount,
+        type,
+        currency: currency || 'USD' as const,
+        categoryId: categoryId ? `idx:${categoryIdToIndex.get(categoryId)}` : undefined,
+        balanceId: balanceId ? `idx:${balanceIdToIndex.get(balanceId)}` : undefined,
+        dueDate,
+      }));
+
+      dispatch({ type: 'CREATE_TEMPLATE', payload: { name, categories, marks, balances } });
     }
   };
 
