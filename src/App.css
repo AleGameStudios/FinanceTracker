@@ -1985,6 +1985,162 @@ select.input {
     padding-top: 0.5rem;
     border-top: 1px solid var(--border-color);
   }
+
+  /* Mobile form spacing fixes */
+  .add-mark-inline {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+  }
+
+  .add-mark-inline .input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .add-balance-inline {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+  }
+
+  .add-balance-inline .input {
+    max-width: none;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .add-mark-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+  }
+
+  .add-mark-row .input {
+    max-width: none;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .add-mark-template-form {
+    gap: 0.75rem;
+  }
+
+  .due-date-input {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .due-date-input .input {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .recurrence-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .recurrence-input,
+  .recurrence-day-input {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.25rem;
+  }
+
+  .recurrence-input .input,
+  .recurrence-day-input .input {
+    width: 100%;
+    min-width: auto;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  /* Form buttons on mobile - template forms */
+  .add-balance-inline .btn,
+  .add-mark-inline .btn,
+  .add-mark-row .btn {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+  }
+
+  /* Mobile select inputs - template forms */
+  .add-balance-inline select.input,
+  .add-mark-inline select.input,
+  .add-mark-row select.input {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  /* Sheet balance modal and edit forms */
+  .modal form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .modal form .input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+
+  .amount-currency-row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .amount-currency-row .input,
+  .amount-currency-row .currency-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+
+  .balance-edit-form {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .balance-edit-form .input {
+    max-width: none;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+
+  .balance-edit-form .currency-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+
+  .balance-edit-form .btn {
+    width: 100%;
+    padding: 0.75rem;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
+    padding: 0.75rem;
+  }
 }
 
 /* Calculator Panel */
