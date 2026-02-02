@@ -2,9 +2,10 @@ import React, { createContext, useContext, useReducer, useEffect, useCallback, u
 import type { ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { AppData, Sheet, Template, Category, HistoryEntry, Mark, Currency, Balance, DollarBlueRateData } from '../types';
-import { loadData, saveData, defaultData } from '../utils/storage';
+import { loadData, saveData, clearData, defaultData } from '../utils/storage';
 import { getRandomColor } from '../utils/colors';
-import { saveUserData, loadUserData, subscribeToUserData } from '../firebase';
+import { saveUserData, loadUserData, subscribeToUserData, forceSaveUserData } from '../firebase';
+import type { AppDataWithMeta } from '../firebase/database';
 import type { Unsubscribe } from 'firebase/firestore';
 
 type Action =
@@ -547,6 +548,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
   const unsubscribeRef = useRef<Unsubscribe | null>(null);
   const isInitialLoad = useRef(true);
   const lastSyncedState = useRef<string>('');
+  const lastSyncedTimestamp = useRef<number>(0);
+  const isSavingRef = useRef(false);
 
   // Load initial data
   useEffect(() => {
@@ -558,23 +561,33 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
         try {
           const firebaseData = await loadUserData(userId);
           if (firebaseData) {
-            dispatch({ type: 'LOAD_DATA', payload: firebaseData });
-            lastSyncedState.current = JSON.stringify(firebaseData);
+            // Extract timestamp and app data
+            const { updatedAt, ...appData } = firebaseData as AppDataWithMeta;
+            dispatch({ type: 'LOAD_DATA', payload: appData as AppData });
+            lastSyncedState.current = JSON.stringify(appData);
+            lastSyncedTimestamp.current = updatedAt || Date.now();
+
+            // Clear local storage since we're using cloud data
+            clearData();
           } else {
             // First time user - check if they have local data to migrate
             const localData = loadData();
             if (localData.sheets.length > 0) {
               dispatch({ type: 'LOAD_DATA', payload: localData });
-              // Save local data to Firebase
-              await saveUserData(userId, localData);
+              // Force save local data to Firebase (migration)
+              const timestamp = await forceSaveUserData(userId, localData);
               lastSyncedState.current = JSON.stringify(localData);
+              lastSyncedTimestamp.current = timestamp;
+              // Clear local storage after migration
+              clearData();
             }
           }
         } catch (error) {
           console.error('Failed to load data from Firebase:', error);
-          // Fall back to local storage
-          const localData = loadData();
-          dispatch({ type: 'LOAD_DATA', payload: localData });
+          // On error, DO NOT fall back to localStorage for authenticated users
+          // This prevents stale local data from overwriting cloud data
+          // Just use default data and let user retry
+          console.warn('Using default data due to Firebase error. Please refresh to retry.');
         }
       } else {
         // Load from localStorage for non-authenticated users
@@ -599,13 +612,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
       return;
     }
 
-    unsubscribeRef.current = subscribeToUserData(userId, (data) => {
-      if (data && !isInitialLoad.current) {
-        const dataString = JSON.stringify(data);
-        // Only update if data actually changed from another source
-        if (dataString !== lastSyncedState.current) {
-          dispatch({ type: 'LOAD_DATA', payload: data });
-          lastSyncedState.current = dataString;
+    unsubscribeRef.current = subscribeToUserData(userId, (data, timestamp) => {
+      // Skip if this is during initial load or if we're currently saving
+      if (isInitialLoad.current || isSavingRef.current) return;
+
+      if (data && timestamp) {
+        // Only update if cloud timestamp is newer than our last synced timestamp
+        if (timestamp > lastSyncedTimestamp.current) {
+          const { updatedAt, ...appData } = data;
+          const dataString = JSON.stringify(appData);
+
+          // Only update if data actually changed
+          if (dataString !== lastSyncedState.current) {
+            console.log('Received newer data from cloud', {
+              cloudTimestamp: timestamp,
+              localTimestamp: lastSyncedTimestamp.current
+            });
+            dispatch({ type: 'LOAD_DATA', payload: appData as AppData });
+            lastSyncedState.current = dataString;
+            lastSyncedTimestamp.current = timestamp;
+          }
         }
       }
     });
@@ -627,13 +653,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
 
     if (userId) {
       setIsSyncing(true);
+      isSavingRef.current = true;
+
       try {
-        await saveUserData(userId, data);
-        lastSyncedState.current = dataString;
+        // Use a new timestamp for this save
+        const saveTimestamp = Date.now();
+        const result = await saveUserData(userId, data, saveTimestamp);
+
+        if (result !== null) {
+          // Save succeeded
+          lastSyncedState.current = dataString;
+          lastSyncedTimestamp.current = result;
+        } else {
+          // Save was skipped because cloud has newer data
+          // The subscription will handle updating to the newer cloud data
+          console.log('Local save skipped - cloud has newer data');
+        }
       } catch (error) {
         console.error('Failed to save to Firebase:', error);
       } finally {
         setIsSyncing(false);
+        isSavingRef.current = false;
       }
     } else {
       saveData(data);

@@ -54,6 +54,14 @@ export const saveData = (data: AppData): void => {
   }
 };
 
+export const clearData = (): void => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.error('Failed to clear data from localStorage:', error);
+  }
+};
+
 export const exportData = (data: AppData): void => {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
