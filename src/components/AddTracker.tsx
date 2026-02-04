@@ -4,48 +4,19 @@ import { useSettings } from '../context/SettingsContext';
 import { categoryColors } from '../utils/colors';
 import type { Currency } from '../types';
 
-// Safe expression evaluator for basic math operations
-const evaluateExpression = (expr: string): number | null => {
-  // Remove whitespace
-  let cleaned = expr.replace(/\s/g, '');
-
-  // Only allow numbers, operators, decimal points, and parentheses
-  if (!/^[\d+\-*/().]+$/.test(cleaned)) {
-    return null;
-  }
-
-  // Fix leading zeros to prevent octal interpretation (e.g., 0600 -> 600)
-  cleaned = cleaned.replace(/(^|[+\-*/(])0+(\d)/g, '$1$2');
-
-  try {
-    const result = new Function(`return (${cleaned})`)();
-    if (typeof result === 'number' && isFinite(result)) {
-      return Math.round(result * 100) / 100;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-};
-
-export const AddCategory: React.FC = () => {
-  const { addCategory } = useApp();
+export const AddTracker: React.FC = () => {
+  const { addTracker } = useApp();
   const { t } = useSettings();
   const [isAdding, setIsAdding] = useState(false);
   const [name, setName] = useState('');
-  const [amount, setAmount] = useState('0');
   const [color, setColor] = useState(categoryColors[0]);
   const [currency, setCurrency] = useState<Currency>('USD');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      // Try to evaluate as expression first, fall back to parseFloat
-      const evaluated = evaluateExpression(amount);
-      const parsedAmount = evaluated !== null ? evaluated : (parseFloat(amount) || 0);
-      addCategory(name.trim(), parsedAmount, color, currency);
+      addTracker(name.trim(), color, currency);
       setName('');
-      setAmount('0');
       setCurrency('USD');
       setIsAdding(false);
     }
@@ -54,31 +25,25 @@ export const AddCategory: React.FC = () => {
   if (!isAdding) {
     return (
       <button className="btn btn-primary add-category-btn" onClick={() => setIsAdding(true)}>
-        {t('addCategory')}
+        {t('addTracker')}
       </button>
     );
   }
 
   return (
     <form className="add-category-form" onSubmit={handleSubmit}>
-      <h3>{t('addNewCategory')}</h3>
+      <h3>{t('addNewTracker') || 'Add New Tracker'}</h3>
       <input
         type="text"
         className="input"
-        placeholder={t('categoryNamePlaceholder')}
+        placeholder={t('trackerNamePlaceholder')}
         value={name}
         onChange={(e) => setName(e.target.value)}
         autoFocus
         required
       />
       <div className="amount-currency-row">
-        <input
-          type="text"
-          className="input"
-          placeholder="e.g. 600 or 400+200"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
+        <span className="tracker-start-info">{t('trackerStartsAtZero') || 'Trackers start at $0 and count up'}</span>
         <select
           className="currency-select"
           value={currency}
@@ -107,7 +72,6 @@ export const AddCategory: React.FC = () => {
         <button type="button" className="btn btn-secondary" onClick={() => {
           setIsAdding(false);
           setName('');
-          setAmount('0');
         }}>{t('cancel')}</button>
       </div>
     </form>

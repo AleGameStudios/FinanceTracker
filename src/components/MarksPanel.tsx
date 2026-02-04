@@ -4,6 +4,25 @@ import { useSettings } from '../context/SettingsContext';
 import { fetchDollarBlueRate, isRateStale } from '../utils/dollarBlue';
 import type { Mark, Currency } from '../types';
 
+// Safe expression evaluator for basic math operations
+const evaluateExpression = (expr: string): number | null => {
+  let cleaned = expr.replace(/\s/g, '');
+  if (!/^[\d+\-*/().]+$/.test(cleaned)) {
+    return null;
+  }
+  // Fix leading zeros to prevent octal interpretation (e.g., 0600 -> 600)
+  cleaned = cleaned.replace(/(^|[+\-*/(])0+(\d)/g, '$1$2');
+  try {
+    const result = new Function(`return (${cleaned})`)();
+    if (typeof result === 'number' && isFinite(result)) {
+      return Math.round(result * 100) / 100;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 // Format amount - ARS uses Spanish formatting (periods for thousands, comma for decimals)
 const formatAmount = (amount: number, currency: Currency): string => {
   if (currency === 'ARS') {
@@ -42,6 +61,8 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
   const [editMarkBalanceId, setEditMarkBalanceId] = useState<string>('');
   const [newMarkDueDate, setNewMarkDueDate] = useState<string>('');
   const [editMarkDueDate, setEditMarkDueDate] = useState<string>('');
+  const [newMarkTrackerId, setNewMarkTrackerId] = useState<string>('');
+  const [editMarkTrackerId, setEditMarkTrackerId] = useState<string>('');
   const [isFetchingRate, setIsFetchingRate] = useState(false);
   const [rateFetchError, setRateFetchError] = useState(false);
 
@@ -93,13 +114,16 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
 
   const handleAddMark = (type: 'incoming' | 'outgoing') => {
     if (newMarkName.trim()) {
-      addMark(newMarkName.trim(), parseFloat(newMarkAmount) || 0, type, newMarkCurrency, newMarkCategoryId || undefined, newMarkBalanceId || undefined, newMarkDueDate || undefined);
+      const evaluated = evaluateExpression(newMarkAmount);
+      const amount = evaluated !== null ? evaluated : (parseFloat(newMarkAmount) || 0);
+      addMark(newMarkName.trim(), amount, type, newMarkCurrency, newMarkCategoryId || undefined, newMarkBalanceId || undefined, newMarkDueDate || undefined, newMarkTrackerId || undefined);
       setNewMarkName('');
       setNewMarkAmount('');
       setNewMarkCurrency('USD');
       setNewMarkCategoryId('');
       setNewMarkBalanceId('');
       setNewMarkDueDate('');
+      setNewMarkTrackerId('');
       setIsAdding(null);
     }
   };
@@ -138,11 +162,14 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
     setEditMarkCategoryId(mark.categoryId || '');
     setEditMarkBalanceId(mark.balanceId || '');
     setEditMarkDueDate(mark.dueDate || '');
+    setEditMarkTrackerId(mark.trackerId || '');
   };
 
   const saveMarkEdit = () => {
     if (editingMarkId && editMarkName.trim()) {
-      updateMark(editingMarkId, editMarkName.trim(), parseFloat(editMarkAmount) || 0, editMarkCurrency, editMarkCategoryId || undefined, editMarkBalanceId || undefined, editMarkDueDate || undefined);
+      const evaluated = evaluateExpression(editMarkAmount);
+      const amount = evaluated !== null ? evaluated : (parseFloat(editMarkAmount) || 0);
+      updateMark(editingMarkId, editMarkName.trim(), amount, editMarkCurrency, editMarkCategoryId || undefined, editMarkBalanceId || undefined, editMarkDueDate || undefined, editMarkTrackerId || undefined);
       setEditingMarkId(null);
       setEditMarkName('');
       setEditMarkAmount('');
@@ -150,6 +177,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
       setEditMarkCategoryId('');
       setEditMarkBalanceId('');
       setEditMarkDueDate('');
+      setEditMarkTrackerId('');
     }
   };
 
@@ -161,10 +189,12 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
     setEditMarkCategoryId('');
     setEditMarkBalanceId('');
     setEditMarkDueDate('');
+    setEditMarkTrackerId('');
   };
 
   const categories = activeSheet?.categories || [];
   const balances = activeSheet?.balances || [];
+  const trackers = activeSheet?.trackers || [];
 
   const renderMarkItem = (mark: Mark) => {
     const currency = mark.currency || 'USD';
@@ -186,12 +216,11 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
             />
             <div className="mark-edit-row">
               <input
-                type="number"
+                type="text"
                 className="input"
                 value={editMarkAmount}
                 onChange={(e) => setEditMarkAmount(e.target.value)}
-                placeholder={t('amount')}
-                step="0.01"
+                placeholder="e.g. 100 or 50+50"
               />
               <select
                 className="input currency-select"
@@ -220,6 +249,16 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
               <option value="">{t('noBalanceLink')}</option>
               {balances.map((bal) => (
                 <option key={bal.id} value={bal.id}>{bal.name} ({bal.currency})</option>
+              ))}
+            </select>
+            <select
+              className="input"
+              value={editMarkTrackerId}
+              onChange={(e) => setEditMarkTrackerId(e.target.value)}
+            >
+              <option value="">{t('noTrackerLink')}</option>
+              {trackers.map((tracker) => (
+                <option key={tracker.id} value={tracker.id}>{tracker.name} ({tracker.currency})</option>
               ))}
             </select>
             <div className="mark-due-date-row">
@@ -252,6 +291,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
 
     const linkedCategory = mark.categoryId ? categories.find(c => c.id === mark.categoryId) : null;
     const linkedBalance = mark.balanceId ? balances.find(b => b.id === mark.balanceId) : null;
+    const linkedTracker = mark.trackerId ? trackers.find(t => t.id === mark.trackerId) : null;
 
     return (
       <div key={mark.id} className={`mark-item ${mark.completed ? 'completed' : ''}`}>
@@ -274,6 +314,11 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
             {linkedBalance && (
               <span className="mark-balance-link">
                 {linkedBalance.name}
+              </span>
+            )}
+            {linkedTracker && (
+              <span className="mark-tracker-link" style={{ backgroundColor: linkedTracker.color }}>
+                {linkedTracker.name}
               </span>
             )}
             {mark.dueDate && (
@@ -325,12 +370,11 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
       />
       <div className="add-mark-amount-row">
         <input
-          type="number"
+          type="text"
           className="input"
-          placeholder={t('amount')}
+          placeholder="e.g. 100 or 50+50"
           value={newMarkAmount}
           onChange={(e) => setNewMarkAmount(e.target.value)}
-          step="0.01"
         />
         <select
           className="input currency-select"
@@ -359,6 +403,16 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
         <option value="">{t('noBalanceLink')}</option>
         {balances.map((bal) => (
           <option key={bal.id} value={bal.id}>{bal.name} ({bal.currency})</option>
+        ))}
+      </select>
+      <select
+        className="input"
+        value={newMarkTrackerId}
+        onChange={(e) => setNewMarkTrackerId(e.target.value)}
+      >
+        <option value="">{t('noTrackerLink')}</option>
+        {trackers.map((tracker) => (
+          <option key={tracker.id} value={tracker.id}>{tracker.name} ({tracker.currency})</option>
         ))}
       </select>
       <div className="mark-due-date-row">
@@ -392,6 +446,7 @@ export const MarksPanel: React.FC<MarksPanelProps> = ({ isOpen, onClose }) => {
           setNewMarkCategoryId('');
           setNewMarkBalanceId('');
           setNewMarkDueDate('');
+          setNewMarkTrackerId('');
         }}>
           {t('cancel')}
         </button>

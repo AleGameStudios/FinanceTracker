@@ -19,12 +19,16 @@ const formatCurrencyAmount = (amount: number, currency: Currency = 'USD'): strin
 // Safe expression evaluator for basic math operations
 const evaluateExpression = (expr: string): number | null => {
   // Remove whitespace
-  const cleaned = expr.replace(/\s/g, '');
+  let cleaned = expr.replace(/\s/g, '');
 
   // Only allow numbers, operators, decimal points, and parentheses
   if (!/^[\d+\-*/().]+$/.test(cleaned)) {
     return null;
   }
+
+  // Fix leading zeros to prevent octal interpretation (e.g., 0600 -> 600)
+  // Replace leading zeros in numbers: at start, after operators, or after opening parenthesis
+  cleaned = cleaned.replace(/(^|[+\-*/(])0+(\d)/g, '$1$2');
 
   try {
     // Use Function constructor for safe evaluation (no access to global scope)
@@ -64,6 +68,32 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
   const categoryHistory = state.history
     .filter(entry => entry.categoryId === category.id)
     .sort((a, b) => b.timestamp - a.timestamp);
+
+  // Get transaction totals for this category (all linked transactions, not just completed)
+  const activeSheet = state.sheets.find(s => s.id === state.activeSheetId);
+  const categoryMarks = activeSheet?.marks.filter(m => m.categoryId === category.id) || [];
+  const dollarBlueRate = state.dollarBlueRate || 1200;
+  const categoryCurrency = category.currency || 'USD';
+
+  // Convert transaction amount to category currency
+  const convertToCategoryCurrency = (amount: number, markCurrency: Currency): number => {
+    if (markCurrency === categoryCurrency) return amount;
+    // Convert between currencies
+    if (markCurrency === 'ARS' && categoryCurrency === 'USD') {
+      return amount / dollarBlueRate;
+    } else if (markCurrency === 'USD' && categoryCurrency === 'ARS') {
+      return amount * dollarBlueRate;
+    }
+    return amount;
+  };
+
+  const incomingTotal = categoryMarks
+    .filter(m => m.type === 'incoming')
+    .reduce((sum, m) => sum + convertToCategoryCurrency(m.amount, m.currency || 'USD'), 0);
+
+  const outgoingTotal = categoryMarks
+    .filter(m => m.type === 'outgoing')
+    .reduce((sum, m) => sum + convertToCategoryCurrency(m.amount, m.currency || 'USD'), 0);
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -130,7 +160,6 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
     setQuickAdjustNote('');
   };
 
-  const dollarBlueRate = state.dollarBlueRate || 1200;
   const currentCurrency = category.currency || 'USD';
 
   const handleConvertCurrency = () => {
@@ -182,6 +211,20 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
           )}
           <span className="category-amount">{formatCurrencyAmount(category.amount, category.currency)}</span>
         </div>
+        {(incomingTotal > 0 || outgoingTotal > 0) && (
+          <div className="category-transaction-totals category-transaction-totals-list">
+            {incomingTotal > 0 && (
+              <span className="transaction-total incoming">
+                {t('incomingTotal')} {formatCurrencyAmount(incomingTotal, category.currency)}
+              </span>
+            )}
+            {outgoingTotal > 0 && (
+              <span className="transaction-total outgoing">
+                {t('outgoingTotal')} {formatCurrencyAmount(outgoingTotal, category.currency)}
+              </span>
+            )}
+          </div>
+        )}
 
         {!isEditing ? (
           <div className="category-list-actions">
@@ -394,6 +437,21 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, viewMode =
           &times;
         </button>
       </div>
+
+      {(incomingTotal > 0 || outgoingTotal > 0) && (
+        <div className="category-transaction-totals">
+          {incomingTotal > 0 && (
+            <span className="transaction-total incoming">
+              {t('incomingTotal')} {formatCurrencyAmount(incomingTotal, category.currency)}
+            </span>
+          )}
+          {outgoingTotal > 0 && (
+            <span className="transaction-total outgoing">
+              {t('outgoingTotal')} {formatCurrencyAmount(outgoingTotal, category.currency)}
+            </span>
+          )}
+        </div>
+      )}
 
       {!isEditing ? (
         <div className="category-content">

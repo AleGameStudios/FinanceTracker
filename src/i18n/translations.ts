@@ -67,6 +67,26 @@ export const translations = {
     noteOptional: 'Note (optional)',
     noCategoryHistory: 'No history for this category.',
     categoryHistoryTitle: 'History',
+    incomingTotal: 'Incoming:',
+    outgoingTotal: 'Outgoing:',
+
+    // Trackers
+    trackers: 'Trackers',
+    trackersTab: 'Trackers',
+    categoriesTab: 'Categories',
+    addTracker: '+ Add Tracker',
+    addNewTracker: 'Add New Tracker',
+    trackerName: 'Tracker Name',
+    trackerNamePlaceholder: 'Tracker name',
+    noTrackers: 'No trackers yet',
+    removeTracker: 'Remove Tracker',
+    editTracker: 'Edit Tracker',
+    removeTrackerConfirm: 'Are you sure you want to remove',
+    trackerTotal: 'Total Spent:',
+    trackerStartsAtZero: 'Trackers start at $0 and count up',
+    completedTransactions: 'transactions',
+    linkToTracker: 'Link to tracker',
+    noTrackerLink: 'No tracker link',
 
     // Transactions
     incoming: 'Incoming',
@@ -395,6 +415,26 @@ export const translations = {
     noteOptional: 'Nota (opcional)',
     noCategoryHistory: 'Sin historial para esta categoria.',
     categoryHistoryTitle: 'Historial',
+    incomingTotal: 'Ingresos:',
+    outgoingTotal: 'Egresos:',
+
+    // Trackers
+    trackers: 'Rastreadores',
+    trackersTab: 'Rastreadores',
+    categoriesTab: 'Categorias',
+    addTracker: '+ Agregar Rastreador',
+    addNewTracker: 'Agregar Nuevo Rastreador',
+    trackerName: 'Nombre del Rastreador',
+    trackerNamePlaceholder: 'Nombre del rastreador',
+    noTrackers: 'Sin rastreadores aun',
+    removeTracker: 'Eliminar Rastreador',
+    editTracker: 'Editar Rastreador',
+    removeTrackerConfirm: 'Estas seguro que deseas eliminar',
+    trackerTotal: 'Total Gastado:',
+    trackerStartsAtZero: 'Los rastreadores empiezan en $0 y suman',
+    completedTransactions: 'transacciones',
+    linkToTracker: 'Vincular a rastreador',
+    noTrackerLink: 'Sin rastreador vinculado',
 
     // Transactions
     incoming: 'Ingreso',

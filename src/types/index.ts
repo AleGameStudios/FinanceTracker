@@ -15,6 +15,14 @@ export interface Balance {
   currency: Currency;
 }
 
+export interface Tracker {
+  id: string;
+  name: string;
+  color: string;
+  currency: Currency;
+  // Trackers always start at 0 and accumulate from completed transactions
+}
+
 export type RecurrenceType = 'one-time' | 'weekly' | 'monthly';
 
 export interface Mark {
@@ -27,6 +35,7 @@ export interface Mark {
   completedAt?: number;
   categoryId?: string;
   balanceId?: string; // Link to a specific balance
+  trackerId?: string; // Link to a tracker (spending tracker)
   dueDate?: string; // ISO date string (YYYY-MM-DD) for calendar display
   recurrence?: RecurrenceType; // How the due date recurs when creating from template
   recurrenceDay?: number; // Day of month (1-31) for monthly, or day of week (0-6, Sun-Sat) for weekly
@@ -52,6 +61,7 @@ export interface Sheet {
   categories: Category[];
   marks: Mark[];
   balances: Balance[];
+  trackers: Tracker[];
   isActive: boolean;
   currentBalance?: number; // Deprecated: kept for backwards compatibility
 }
@@ -62,6 +72,7 @@ export interface Template {
   categories: Omit<Category, 'id'>[];
   marks: Omit<Mark, 'id' | 'completed' | 'completedAt'>[];
   balances: Omit<Balance, 'id'>[];
+  trackers: Omit<Tracker, 'id'>[];
   createdAt: number;
 }
 

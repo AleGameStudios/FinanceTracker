@@ -4,6 +4,8 @@ import { AppProvider, useApp } from './context/AppContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { CategoryCard } from './components/CategoryCard';
 import { AddCategory } from './components/AddCategory';
+import { TrackerCard } from './components/TrackerCard';
+import { AddTracker } from './components/AddTracker';
 import { SheetSelector } from './components/SheetSelector';
 import { NewSheetModal } from './components/NewSheetModal';
 import { TemplateManager } from './components/TemplateManager';
@@ -35,6 +37,7 @@ const AppContent: React.FC = () => {
   const [showNotes, setShowNotes] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [activeTab, setActiveTab] = useState<'categories' | 'trackers'>('categories');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeSheet = getActiveSheet();
@@ -193,6 +196,20 @@ const AppContent: React.FC = () => {
             {activeSheet ? (
               <>
                 <div className="view-controls">
+                  <div className="main-tabs">
+                    <button
+                      className={`tab-btn ${activeTab === 'categories' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('categories')}
+                    >
+                      {t('categoriesTab')}
+                    </button>
+                    <button
+                      className={`tab-btn ${activeTab === 'trackers' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('trackers')}
+                    >
+                      {t('trackersTab')}
+                    </button>
+                  </div>
                   <div className="view-toggle">
                     <button
                       className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
@@ -219,12 +236,26 @@ const AppContent: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                <div className={viewMode === 'grid' ? 'categories-grid' : 'categories-list'}>
-                  {activeSheet.categories.map((category) => (
-                    <CategoryCard key={category.id} category={category} viewMode={viewMode} />
-                  ))}
-                </div>
-                <AddCategory />
+
+                {activeTab === 'categories' ? (
+                  <>
+                    <div className={viewMode === 'grid' ? 'categories-grid' : 'categories-list'}>
+                      {activeSheet.categories.map((category) => (
+                        <CategoryCard key={category.id} category={category} viewMode={viewMode} />
+                      ))}
+                    </div>
+                    <AddCategory />
+                  </>
+                ) : (
+                  <>
+                    <div className={viewMode === 'grid' ? 'categories-grid' : 'categories-list'}>
+                      {(activeSheet.trackers || []).map((tracker) => (
+                        <TrackerCard key={tracker.id} tracker={tracker} viewMode={viewMode} />
+                      ))}
+                    </div>
+                    <AddTracker />
+                  </>
+                )}
               </>
             ) : (
               <div className="empty-state">

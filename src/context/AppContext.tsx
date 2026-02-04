@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import type { AppData, Sheet, Template, Category, HistoryEntry, Mark, Currency, Balance, DollarBlueRateData } from '../types';
+import type { AppData, Sheet, Template, Category, HistoryEntry, Mark, Currency, Balance, DollarBlueRateData, Tracker } from '../types';
 import { loadData, saveData, clearData, defaultData, saveBackup, loadBackup, clearBackup, savePendingChanges, loadPendingChanges, clearPendingChanges } from '../utils/storage';
 import { getRandomColor } from '../utils/colors';
 import { saveUserData, loadUserData, subscribeToUserData, forceSaveUserData } from '../firebase';
@@ -109,7 +109,7 @@ type Action =
   | { type: 'DELETE_SHEET'; payload: string }
   | { type: 'IMPORT_DATA'; payload: AppData }
   | { type: 'SET_VIEW_MODE'; payload: 'grid' | 'list' }
-  | { type: 'ADD_MARK'; payload: { name: string; amount: number; markType: 'incoming' | 'outgoing'; currency: Currency; categoryId?: string; balanceId?: string; dueDate?: string } }
+  | { type: 'ADD_MARK'; payload: { name: string; amount: number; markType: 'incoming' | 'outgoing'; currency: Currency; categoryId?: string; balanceId?: string; dueDate?: string; trackerId?: string } }
   | { type: 'TOGGLE_MARK'; payload: { markId: string } }
   | { type: 'REMOVE_MARK'; payload: { markId: string } }
   | { type: 'UPDATE_CURRENT_BALANCE'; payload: { amount: number } }
@@ -119,9 +119,12 @@ type Action =
   | { type: 'UPDATE_NOTES'; payload: string }
   | { type: 'UPDATE_DOLLAR_BLUE_RATE'; payload: number }
   | { type: 'MOVE_MARK'; payload: { markId: string; targetSheetId: string } }
-  | { type: 'UPDATE_MARK'; payload: { markId: string; name: string; amount: number; currency: Currency; categoryId?: string; balanceId?: string; dueDate?: string } }
+  | { type: 'UPDATE_MARK'; payload: { markId: string; name: string; amount: number; currency: Currency; categoryId?: string; balanceId?: string; dueDate?: string; trackerId?: string } }
   | { type: 'CONVERT_CATEGORY_CURRENCY'; payload: { categoryId: string; newCurrency: Currency; convertedAmount: number } }
-  | { type: 'SET_DOLLAR_BLUE_RATE_DATA'; payload: DollarBlueRateData };
+  | { type: 'SET_DOLLAR_BLUE_RATE_DATA'; payload: DollarBlueRateData }
+  | { type: 'ADD_TRACKER'; payload: { name: string; color: string; currency: Currency } }
+  | { type: 'UPDATE_TRACKER'; payload: { trackerId: string; name: string; color: string } }
+  | { type: 'REMOVE_TRACKER'; payload: { trackerId: string } };
 
 interface AppContextType {
   state: AppData;
@@ -140,7 +143,7 @@ interface AppContextType {
   getActiveSheet: () => Sheet | null;
   importData: (data: AppData) => void;
   setViewMode: (mode: 'grid' | 'list') => void;
-  addMark: (name: string, amount: number, markType: 'incoming' | 'outgoing', currency: Currency, categoryId?: string, balanceId?: string, dueDate?: string) => void;
+  addMark: (name: string, amount: number, markType: 'incoming' | 'outgoing', currency: Currency, categoryId?: string, balanceId?: string, dueDate?: string, trackerId?: string) => void;
   toggleMark: (markId: string) => void;
   removeMark: (markId: string) => void;
   updateCurrentBalance: (amount: number) => void;
@@ -150,8 +153,11 @@ interface AppContextType {
   updateNotes: (notes: string) => void;
   updateDollarBlueRate: (rate: number) => void;
   moveMark: (markId: string, targetSheetId: string) => void;
-  updateMark: (markId: string, name: string, amount: number, currency: Currency, categoryId?: string, balanceId?: string, dueDate?: string) => void;
+  updateMark: (markId: string, name: string, amount: number, currency: Currency, categoryId?: string, balanceId?: string, dueDate?: string, trackerId?: string) => void;
   setDollarBlueRateData: (data: DollarBlueRateData) => void;
+  addTracker: (name: string, color: string, currency: Currency) => void;
+  updateTracker: (trackerId: string, name: string, color: string) => void;
+  removeTracker: (trackerId: string) => void;
   isLoading: boolean;
   isSyncing: boolean;
 }
@@ -205,6 +211,7 @@ const appReducer = (state: AppData, action: Action): AppData => {
         categories: newCategories,
         marks: newMarks,
         balances: newBalances,
+        trackers: [],
         isActive: true,
       };
 
@@ -357,6 +364,7 @@ const appReducer = (state: AppData, action: Action): AppData => {
         categories: action.payload.categories,
         marks: action.payload.marks || [],
         balances: action.payload.balances || [],
+        trackers: [],
         createdAt: Date.now(),
       };
 
@@ -428,6 +436,7 @@ const appReducer = (state: AppData, action: Action): AppData => {
         categoryId: action.payload.categoryId,
         balanceId: action.payload.balanceId,
         dueDate: action.payload.dueDate,
+        trackerId: action.payload.trackerId,
       };
 
       return {
@@ -644,7 +653,7 @@ const appReducer = (state: AppData, action: Action): AppData => {
                 ...s,
                 marks: s.marks?.map(m =>
                   m.id === action.payload.markId
-                    ? { ...m, name: action.payload.name, amount: action.payload.amount, currency: action.payload.currency, categoryId: action.payload.categoryId, balanceId: action.payload.balanceId, dueDate: action.payload.dueDate }
+                    ? { ...m, name: action.payload.name, amount: action.payload.amount, currency: action.payload.currency, categoryId: action.payload.categoryId, balanceId: action.payload.balanceId, dueDate: action.payload.dueDate, trackerId: action.payload.trackerId }
                     : m
                 ),
               }
@@ -680,6 +689,62 @@ const appReducer = (state: AppData, action: Action): AppData => {
         dollarBlueRate: action.payload.promedio,
         dollarBlueRateData: action.payload,
       };
+
+    case 'ADD_TRACKER': {
+      const activeSheet = state.sheets.find(s => s.id === state.activeSheetId);
+      if (!activeSheet) return state;
+
+      const newTracker: Tracker = {
+        id: uuidv4(),
+        name: action.payload.name,
+        color: action.payload.color,
+        currency: action.payload.currency,
+      };
+
+      return {
+        ...state,
+        sheets: state.sheets.map(s =>
+          s.id === state.activeSheetId
+            ? { ...s, trackers: [...(s.trackers || []), newTracker] }
+            : s
+        ),
+      };
+    }
+
+    case 'UPDATE_TRACKER': {
+      const activeSheet = state.sheets.find(s => s.id === state.activeSheetId);
+      if (!activeSheet) return state;
+
+      return {
+        ...state,
+        sheets: state.sheets.map(s =>
+          s.id === state.activeSheetId
+            ? {
+                ...s,
+                trackers: (s.trackers || []).map(t =>
+                  t.id === action.payload.trackerId
+                    ? { ...t, name: action.payload.name, color: action.payload.color }
+                    : t
+                ),
+              }
+            : s
+        ),
+      };
+    }
+
+    case 'REMOVE_TRACKER': {
+      const activeSheet = state.sheets.find(s => s.id === state.activeSheetId);
+      if (!activeSheet) return state;
+
+      return {
+        ...state,
+        sheets: state.sheets.map(s =>
+          s.id === state.activeSheetId
+            ? { ...s, trackers: (s.trackers || []).filter(t => t.id !== action.payload.trackerId) }
+            : s
+        ),
+      };
+    }
 
     default:
       return state;
@@ -1082,8 +1147,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
     dispatch({ type: 'SET_VIEW_MODE', payload: mode });
   };
 
-  const addMark = (name: string, amount: number, markType: 'incoming' | 'outgoing', currency: Currency = 'USD', categoryId?: string, balanceId?: string, dueDate?: string) => {
-    dispatch({ type: 'ADD_MARK', payload: { name, amount, markType, currency, categoryId, balanceId, dueDate } });
+  const addMark = (name: string, amount: number, markType: 'incoming' | 'outgoing', currency: Currency = 'USD', categoryId?: string, balanceId?: string, dueDate?: string, trackerId?: string) => {
+    dispatch({ type: 'ADD_MARK', payload: { name, amount, markType, currency, categoryId, balanceId, dueDate, trackerId } });
   };
 
   const toggleMark = (markId: string) => {
@@ -1122,12 +1187,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
     dispatch({ type: 'MOVE_MARK', payload: { markId, targetSheetId } });
   };
 
-  const updateMark = (markId: string, name: string, amount: number, currency: Currency, categoryId?: string, balanceId?: string, dueDate?: string) => {
-    dispatch({ type: 'UPDATE_MARK', payload: { markId, name, amount, currency, categoryId, balanceId, dueDate } });
+  const updateMark = (markId: string, name: string, amount: number, currency: Currency, categoryId?: string, balanceId?: string, dueDate?: string, trackerId?: string) => {
+    dispatch({ type: 'UPDATE_MARK', payload: { markId, name, amount, currency, categoryId, balanceId, dueDate, trackerId } });
   };
 
   const setDollarBlueRateData = (data: DollarBlueRateData) => {
     dispatch({ type: 'SET_DOLLAR_BLUE_RATE_DATA', payload: data });
+  };
+
+  const addTracker = (name: string, color: string, currency: Currency) => {
+    dispatch({ type: 'ADD_TRACKER', payload: { name, color, currency } });
+  };
+
+  const updateTracker = (trackerId: string, name: string, color: string) => {
+    dispatch({ type: 'UPDATE_TRACKER', payload: { trackerId, name, color } });
+  };
+
+  const removeTracker = (trackerId: string) => {
+    dispatch({ type: 'REMOVE_TRACKER', payload: { trackerId } });
   };
 
   return (
@@ -1161,6 +1238,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, userId }) =>
         moveMark,
         updateMark,
         setDollarBlueRateData,
+        addTracker,
+        updateTracker,
+        removeTracker,
         isLoading,
         isSyncing,
       }}

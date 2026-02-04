@@ -3,6 +3,33 @@ import { useApp } from '../context/AppContext';
 import { useSettings } from '../context/SettingsContext';
 import type { Currency, Balance } from '../types';
 
+// Safe expression evaluator for basic math operations
+const evaluateExpression = (expr: string): number | null => {
+  // Remove whitespace
+  let cleaned = expr.replace(/\s/g, '');
+
+  // Only allow numbers, operators, decimal points, and parentheses
+  if (!/^[\d+\-*/().]+$/.test(cleaned)) {
+    return null;
+  }
+
+  // Fix leading zeros to prevent octal interpretation (e.g., 0600 -> 600)
+  cleaned = cleaned.replace(/(^|[+\-*/(])0+(\d)/g, '$1$2');
+
+  try {
+    // Use Function constructor for safe evaluation (no access to global scope)
+    const result = new Function(`return (${cleaned})`)();
+
+    // Check if result is a valid finite number
+    if (typeof result === 'number' && isFinite(result)) {
+      return Math.round(result * 100) / 100; // Round to 2 decimal places
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 interface SheetSelectorProps {
   onNewSheet: () => void;
 }
@@ -35,7 +62,9 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({ onNewSheet }) => {
   };
 
   const handleBalanceSave = () => {
-    const newBalance = parseFloat(balanceInput);
+    // Try to evaluate as expression first, fall back to parseFloat
+    const evaluated = evaluateExpression(balanceInput);
+    const newBalance = evaluated !== null ? evaluated : parseFloat(balanceInput);
     if (!isNaN(newBalance)) {
       updateCurrentBalance(newBalance);
     }
@@ -53,7 +82,10 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({ onNewSheet }) => {
   const handleAddBalance = (e: React.FormEvent) => {
     e.preventDefault();
     if (newBalanceName.trim()) {
-      addBalance(newBalanceName.trim(), parseFloat(newBalanceAmount) || 0, newBalanceCurrency);
+      // Try to evaluate as expression first, fall back to parseFloat
+      const evaluated = evaluateExpression(newBalanceAmount);
+      const amount = evaluated !== null ? evaluated : (parseFloat(newBalanceAmount) || 0);
+      addBalance(newBalanceName.trim(), amount, newBalanceCurrency);
       setNewBalanceName('');
       setNewBalanceAmount('0');
       setNewBalanceCurrency('USD');
@@ -70,7 +102,10 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({ onNewSheet }) => {
 
   const handleSaveEditBalance = () => {
     if (editingBalanceId && editBalanceName.trim()) {
-      updateBalance(editingBalanceId, editBalanceName.trim(), parseFloat(editBalanceAmount) || 0, editBalanceCurrency);
+      // Try to evaluate as expression first, fall back to parseFloat
+      const evaluated = evaluateExpression(editBalanceAmount);
+      const amount = evaluated !== null ? evaluated : (parseFloat(editBalanceAmount) || 0);
+      updateBalance(editingBalanceId, editBalanceName.trim(), amount, editBalanceCurrency);
       setEditingBalanceId(null);
     }
   };
@@ -158,14 +193,14 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({ onNewSheet }) => {
                     <span className="balance-name">{t('currentBalance')}</span>
                     {isEditingBalance ? (
                       <input
-                        type="number"
+                        type="text"
                         className="input balance-input"
                         value={balanceInput}
                         onChange={(e) => setBalanceInput(e.target.value)}
                         onBlur={handleBalanceSave}
                         onKeyDown={handleBalanceKeyDown}
                         autoFocus
-                        step="0.01"
+                        placeholder="e.g. 400-25"
                       />
                     ) : (
                       <button className="balance-value" onClick={handleBalanceClick} title={t('clickToEdit')}>
@@ -188,11 +223,11 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({ onNewSheet }) => {
                           placeholder={t('balanceName')}
                         />
                         <input
-                          type="number"
+                          type="text"
                           className="input"
                           value={editBalanceAmount}
                           onChange={(e) => setEditBalanceAmount(e.target.value)}
-                          step="0.01"
+                          placeholder="e.g. 400-25"
                         />
                         <select
                           className="currency-select"
@@ -263,12 +298,11 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({ onNewSheet }) => {
               />
               <div className="amount-currency-row">
                 <input
-                  type="number"
+                  type="text"
                   className="input"
-                  placeholder={t('amount')}
+                  placeholder="e.g. 400-25"
                   value={newBalanceAmount}
                   onChange={(e) => setNewBalanceAmount(e.target.value)}
-                  step="0.01"
                 />
                 <select
                   className="currency-select"
